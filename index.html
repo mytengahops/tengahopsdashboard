@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BLK Facility Management System</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0f172a;--p:#1e293b;--p2:#273449;--bd:#334155;--t:#e2e8f0;--m:#94a3b8;
+        --pr:#3b82f6;--ok:#10b981;--wa:#f59e0b;--da:#ef4444;--ac:#8b5cf6;--lk:#ec4899;--ot:#f97316}
+  body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+  .wrap{max-width:1400px;margin:0 auto;padding:20px}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+  h1{font-size:22px}
+  .tabs{display:flex;gap:4px;background:var(--p);padding:4px;border-radius:8px;flex-wrap:wrap}
+  .tab{padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--m);border:none;background:none;white-space:nowrap}
+  .tab.active{background:var(--pr);color:#fff}
+  .card{background:var(--p);border:1px solid var(--bd);border-radius:12px;padding:20px;margin-bottom:16px}
+  .card h2{font-size:16px;margin-bottom:16px;color:var(--t);display:flex;align-items:center;gap:8px}
+  .grid{display:grid;gap:16px}
+  .grid-5{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .stat{background:var(--p2);padding:16px;border-radius:8px;border-left:3px solid var(--pr)}
+  .stat.s-ok{border-left-color:var(--ok)}
+  .stat.s-wa{border-left-color:var(--wa)}
+  .stat.s-lk{border-left-color:var(--lk)}
+  .stat.s-da{border-left-color:var(--da)}
+  .stat.s-ot{border-left-color:var(--ot)}
+  .stat .n{font-size:28px;font-weight:700}
+  .stat .l{font-size:12px;color:var(--m);margin-top:4px}
+  label{display:block;font-size:13px;color:var(--m);margin-bottom:6px;margin-top:12px}
+  input,select,textarea{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--bd);
+                         border-radius:6px;color:var(--t);font-size:14px;font-family:inherit}
+  textarea{min-height:70px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pr)}
+  button{padding:10px 16px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+  button:hover{opacity:.85;transform:translateY(-1px)}
+  .btn-p{background:var(--pr);color:#fff}
+  .btn-ok{background:var(--ok);color:#fff}
+  .btn-wa{background:var(--wa);color:#000}
+  .btn-da{background:var(--da);color:#fff}
+  .btn-lk{background:var(--lk);color:#fff}
+  .btn-ot{background:var(--ot);color:#fff}
+  .btn-g{background:var(--bd);color:var(--t)}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:10px;border-bottom:1px solid var(--bd)}
+  th{color:var(--m);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  tr:hover td{background:var(--p2)}
+  .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+  .b-pending{background:#f59e0b33;color:var(--wa)}
+  .b-approved{background:#3b82f633;color:var(--pr)}
+  .b-checked-in{background:#10b98133;color:var(--ok)}
+  .b-awaiting-lock{background:#ec489933;color:var(--lk)}
+  .b-locked{background:#64748b33;color:var(--m)}
+  .b-cancelled{background:#ef444433;color:var(--da)}
+  .b-present{background:#10b98133;color:var(--ok)}
+  .b-leave{background:#3b82f633;color:var(--pr)}
+  .b-mc{background:#f59e0b33;color:var(--wa)}
+  .b-absent{background:#ef444433;color:var(--da)}
+  .b-ot{background:#f9731633;color:var(--ot)}
+  .actions{display:flex;gap:6px;flex-wrap:wrap}
+  .actions button{padding:5px 10px;font-size:12px}
+  .empty{text-align:center;padding:40px;color:var(--m)}
+  .pulse{display:inline-block;width:8px;height:8px;background:var(--ok);border-radius:50%;margin-right:6px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--ok);color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.3);z-index:1000;animation:slide .3s}
+  @keyframes slide{from{transform:translateX(100%)}to{transform:translateX(0)}}
+  .section{display:none}.section.active{display:block}
+
+  .block-row{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:10px;position:relative}
+  .block-row .rm{position:absolute;top:8px;right:8px;background:var(--da);color:#fff;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .block-row .row-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:600px){.block-row .row-grid{grid-template-columns:1fr}}
+  .add-block-btn{width:100%;padding:12px;background:var(--p2);color:var(--pr);border:1px dashed var(--pr);border-radius:8px;cursor:pointer;font-weight:500;font-size:14px}
+
+  .batch-group{background:var(--p2);border-radius:8px;padding:14px;margin-bottom:12px;border-left:3px solid var(--pr)}
+  .batch-group h3{font-size:14px;margin-bottom:10px;color:var(--t);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .batch-meta{font-size:12px;color:var(--m);margin-bottom:10px}
+  .batch-blocks{display:grid;gap:8px}
+  .batch-block{background:var(--bg);padding:10px;border-radius:6px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+  .batch-block .info{font-size:13px}
+  .batch-block .info b{color:var(--t)}
+  .batch-block .info small{color:var(--m);display:block;margin-top:2px}
+
+  .kh-login{max-width:500px;margin:40px auto}
+  .kh-task{background:var(--p2);border-radius:10px;padding:16px;margin-bottom:12px;border-left:4px solid var(--pr)}
+  .kh-task.status-checked-in{border-left-color:var(--ok)}
+  .kh-task.status-awaiting-lock{border-left-color:var(--lk);animation:glow 2s infinite}
+  .kh-task.status-locked{border-left-color:var(--m);opacity:.7}
+  @keyframes glow{0%,100%{box-shadow:0 0 0 rgba(236,72,153,0)}50%{box-shadow:0 0 20px rgba(236,72,153,.4)}}
+  .kh-task h4{font-size:15px;margin-bottom:6px}
+  .kh-task .reason{background:var(--bg);padding:8px;border-radius:6px;font-size:13px;margin:8px 0;color:var(--t)}
+  .kh-task .big-btns{display:grid;gap:8px;margin-top:10px}
+  .kh-task .big-btns button{padding:14px;font-size:15px;font-weight:600}
+  .kh-filter{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .kh-filter button{padding:6px 12px;font-size:12px;background:var(--p2);color:var(--m);border:1px solid var(--bd)}
+  .kh-filter button.active{background:var(--pr);color:#fff;border-color:var(--pr)}
+
+  .demo-bar{background:linear-gradient(90deg,#3b82f6,#8b5cf6);color:#fff;padding:8px 16px;border-radius:8px;margin-bottom:16px;font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .demo-bar button{padding:5px 12px;font-size:12px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);cursor:pointer}
+
+  /* Roster */
+  .roster-header{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+  @media(max-width:700px){.roster-header{grid-template-columns:1fr}}
+  .roster-quick{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .roster-quick button{padding:8px 16px;font-size:13px}
+
+  .roster-member{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:10px;transition:border-color .2s,border-left .2s}
+  .roster-member.border-present{border-left:4px solid var(--ok)}
+  .roster-member.border-mc{border-left:4px solid var(--wa)}
+  .roster-member.border-leave{border-left:4px solid var(--pr)}
+  .roster-member.border-absent{border-left:4px solid var(--da)}
+
+  .roster-member .top-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .roster-member .name{font-size:15px;font-weight:600}
+  .roster-member .team-tag{font-size:11px;color:var(--m);background:var(--p2);padding:2px 8px;border-radius:4px;margin-left:8px}
+  .roster-member .status-dot{font-size:12px;font-weight:600;margin-left:8px}
+
+  .status-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .status-btns button{padding:10px 16px;font-size:13px;border:2px solid transparent;transition:all .15s;cursor:pointer;font-weight:500;min-width:90px}
+  .status-btns button:hover{opacity:.9;transform:translateY(-1px)}
+  .status-btns button.selected{border-color:rgba(255,255,255,.5);font-weight:700;transform:scale(1.03);box-shadow:0 0 12px rgba(255,255,255,.15)}
+
+  .ot-section{background:var(--p2);padding:12px;border-radius:6px;margin-top:10px;display:none;border:1px solid var(--ot);border-left:4px solid var(--ot)}
+  .ot-section.show{display:block}
+  .ot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:500px){.ot-grid{grid-template-columns:1fr}}
+
+  /* Office OT checkbox */
+  .office-ot-check{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f9731620,#f9731610);border:1px dashed var(--ot);padding:10px 14px;border-radius:8px;margin-top:10px;cursor:pointer;transition:all .2s}
+  .office-ot-check:hover{background:linear-gradient(135deg,#f9731630,#f9731620)}
+  .office-ot-check.checked{border-style:solid;background:linear-gradient(135deg,#f9731640,#f9731620)}
+  .office-ot-check input[type="checkbox"]{width:20px;height:20px;accent-color:var(--ot);cursor:pointer;flex-shrink:0}
+  .office-ot-check .ot-label{font-size:13px;color:var(--ot);font-weight:600}
+  .office-ot-check .ot-desc{font-size:11px;color:var(--m)}
+
+  .roster-summary{background:var(--p2);padding:16px;border-radius:8px;margin-top:16px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:12px}
+  .roster-summary .item{text-align:center}
+  .roster-summary .item .n{font-size:24px;font-weight:700}
+  .roster-summary .item .l{font-size:11px;color:var(--m);margin-top:4px}
+
+  @media(max-width:700px){
+    table{font-size:12px}th,td{padding:6px}
+    .wrap{padding:12px}
+    h1{font-size:18px}
+    .tab{font-size:12px;padding:6px 10px}
+    .grid-2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="demo-bar">
+    <span>🧪 <b>DEMO MODE</b> — All data saved in browser localStorage</span>
+    <span>
+      <button onclick="loadSampleData()">Load Sample Data</button>
+      <button onclick="resetAll()">Reset All</button>
+    </span>
+  </div>
+
+  <header>
+    <h1>🏢 BLK Facility Management</h1>
+    <div class="tabs">
+      <button class="tab active" data-view="dashboard">📊 Dashboard</button>
+      <button class="tab" data-view="requestor">📝 Rooftop Request</button>
+      <button class="tab" data-view="attendance">👥 Attendance</button>
+      <button class="tab" data-view="keyholder">🔑 Key Holder</button>
+      <button class="tab" data-view="manage">⚙️ Manage</button>
+    </div>
+  </header>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="view-dashboard" class="section active">
+    <div class="grid grid-5" style="margin-bottom:16px">
+      <div class="stat s-ok"><div class="n" id="s-onroof">0</div><div class="l"><span class="pulse"></span>On Rooftop Now</div></div>
+      <div class="stat s-wa"><div class="n" id="s-pending">0</div><div class="l">Pending Rooftop</div></div>
+      <div class="stat s-lk"><div class="n" id="s-lock">0</div><div class="l">Awaiting Lock</div></div>
+      <div class="stat"><div class="n" id="s-onsite">0</div><div class="l">On-Site Staff</div></div>
+      <div class="stat s-ot"><div class="n" id="s-ot">0</div><div class="l">On OT Today</div></div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>👥 Today's Attendance</h2>
+        <div id="dashAttendance"></div>
+      </div>
+      <div class="card">
+        <h2>⏰ Today's Overtime</h2>
+        <div id="dashOT"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🏢 Currently On Rooftop</h2>
+      <div id="dashRooftop"></div>
+    </div>
+
+    <div class="card">
+      <h2>🔒 Awaiting Lock-Back</h2>
+      <div id="dashLock"></div>
+    </div>
+
+    <div class="card">
+      <h2>⏳ Pending Rooftop Requests</h2>
+      <div id="dashPending"></div>
+    </div>
+  </section>
+
+  <!-- ============ REQUESTOR ============ -->
+  <section id="view-requestor" class="section">
+    <div class="card">
+      <h2>📝 Request Rooftop Access</h2>
+      <form id="reqForm">
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+          <div><label>Full Name *</label><input id="r-name" required placeholder="John Doe"/></div>
+          <div><label>Company / Contractor *</label><input id="r-company" required placeholder="ABC Maintenance"/></div>
+          <div><label>Contact Number *</label><input id="r-phone" required placeholder="+65 9123 4567"/></div>
+        </div>
+        <label style="margin-top:20px">📍 Blocks & Reasons (add multiple)</label>
+        <div id="blockList"></div>
+        <button type="button" class="add-block-btn" onclick="addBlockRow()">+ Add Another Block</button>
+        <label style="margin-top:20px">
+          <button type="submit" class="btn-p" style="width:100%;padding:14px;font-size:15px">Submit Request</button>
+        </label>
+      </form>
+    </div>
+    <div class="card">
+      <h2>🔎 Track My Requests</h2>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input id="trackName" placeholder="Enter your name"/>
+        <button class="btn-p" onclick="trackMyReqs()">Search</button>
+      </div>
+      <div id="myReqs"><div class="empty">Enter your name to view requests</div></div>
+    </div>
+  </section>
+
+  <!-- ============ ATTENDANCE ============ -->
+  <section id="view-attendance" class="section">
+    <div class="card">
+      <h2>👥 Shift Leader — Submit Daily Roster</h2>
+      <div class="roster-header">
+        <div><label>Date</label><input type="date" id="att-date"/></div>
+        <div><label>Shift</label>
+          <select id="att-shift">
+            <option value="day">☀️ Day (8AM - 8PM)</option>
+            <option value="night">🌙 Night (8PM - 8AM)</option>
+            <option value="office">🏢 Office Hours (9AM - 6PM)</option>
+          </select>
+        </div>
+        <div><label>Team</label>
+          <select id="att-team">
+            <option value="A">Team A</option>
+            <option value="B">Team B</option>
+            <option value="C">Team C</option>
+            <option value="D">Team D</option>
+            <option value="office">Office Hours</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="roster-quick">
+        <button class="btn-ok" onclick="quickAll('present')">✅ All Present</button>
+        <button class="btn-wa" onclick="quickAll('mc')">🏥 All MC</button>
+        <button class="btn-p" onclick="quickAll('leave')">🏖️ All Leave</button>
+        <button class="btn-da" onclick="quickAll('absent')">❌ All Absent</button>
+      </div>
+
+      <div id="rosterMembers"></div>
+
+      <div class="roster-summary">
+        <div class="item"><div class="n" style="color:var(--ok)" id="sum-present">0</div><div class="l">Present</div></div>
+        <div class="item"><div class="n" style="color:var(--ot)" id="sum-ot">0</div><div class="l">On OT</div></div>
+        <div class="item"><div class="n" style="color:var(--wa)" id="sum-mc">0</div><div class="l">MC</div></div>
+        <div class="item"><div class="n" style="color:var(--pr)" id="sum-leave">0</div><div class="l">Leave</div></div>
+        <div class="item"><div class="n" style="color:var(--da)" id="sum-absent">0</div><div class="l">Absent</div></div>
+      </div>
+
+      <button class="btn-p" style="width:100%;margin-top:16px;padding:14px;font-size:15px" onclick="submitRoster()">✅ Submit Roster</button>
+    </div>
+
+    <div class="card">
+      <h2>📜 Attendance History</h2>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <input type="date" id="histDate" style="width:auto"/>
+        <button class="btn-g" onclick="renderAttHistory()">Filter</button>
+        <button class="btn-g" onclick="$('histDate').value='';renderAttHistory()">Clear</button>
+      </div>
+      <div id="attHistory"></div>
+    </div>
+  </section>
+
+  <!-- ============ KEY HOLDER ============ -->
+  <section id="view-keyholder" class="section">
+    <div id="khLoginBox" class="card kh-login">
+      <h2>🔑 Key Holder Sign-In</h2>
+      <p style="color:var(--m);font-size:13px;margin-bottom:16px">Select your name to manage rooftop requests.</p>
+      <label>Your Name</label>
+      <select id="khSelect"><option value="">Loading...</option></select>
+      <button class="btn-p" style="width:100%;margin-top:16px;padding:14px" onclick="khLogin()">Enter Dashboard</button>
+    </div>
+    <div id="khDashBox" style="display:none">
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div>
+          <h2 style="margin:0">🔑 <span id="khName">—</span></h2>
+          <small style="color:var(--m)">Your assigned rooftop requests</small>
+        </div>
+        <button class="btn-g" onclick="khLogout()">Switch User</button>
+      </div>
+      <div class="kh-filter" id="khFilter">
+        <button class="active" data-f="all">All Mine</button>
+        <button data-f="pending">🆕 Available</button>
+        <button data-f="checked-in">On Rooftop</button>
+        <button data-f="awaiting-lock">🔒 Lock Back</button>
+        <button data-f="locked">Completed</button>
+      </div>
+      <div id="khTasks"></div>
+    </div>
+  </section>
+
+  <!-- ============ MANAGE ============ -->
+  <section id="view-manage" class="section">
+    <div class="card">
+      <h2>🗝️ Key Holders</h2>
+      <form id="holderForm" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+        <div><label>Name</label><input id="h-name" required/></div>
+        <div><label>Phone</label><input id="h-phone" required/></div>
+        <div><label>Role</label><input id="h-role" placeholder="Security / FM" required/></div>
+        <button class="btn-p" type="submit">Add</button>
+      </form>
+      <div id="holdersList" style="margin-top:16px"></div>
+    </div>
+    <div class="card">
+      <h2>👥 Team Members (for attendance)</h2>
+      <form id="memberForm" style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+        <div><label>Name</label><input id="m-name" required/></div>
+        <div><label>Team</label>
+          <select id="m-team" required>
+            <option value="A">Team A (Shift)</option>
+            <option value="B">Team B (Shift)</option>
+            <option value="C">Team C (Shift)</option>
+            <option value="D">Team D (Shift)</option>
+            <option value="office">Office Hours</option>
+          </select>
+        </div>
+        <button class="btn-p" type="submit">Add</button>
+      </form>
+      <div id="membersList" style="margin-top:16px"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ============ LOCAL DATABASE ============
+const DB = {
+  get(k){ return JSON.parse(localStorage.getItem('blk_'+k)||'[]'); },
+  set(k,v){ localStorage.setItem('blk_'+k, JSON.stringify(v)); },
+  genId(){ return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+};
+const $ = id => document.getElementById(id);
+function toast(msg,color){
+  const el=document.createElement('div');el.className='toast';el.textContent=msg;
+  if(color)el.style.background=color;document.body.appendChild(el);setTimeout(()=>el.remove(),2500);
+}
+function fmt(ts){
+  if(!ts)return'—';const d=new Date(ts);
+  return d.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function badge(s){
+  const map={pending:['b-pending','Pending'],approved:['b-approved','Approved'],
+    'checked-in':['b-checked-in','Checked In'],'awaiting-lock':['b-awaiting-lock','🔒 Awaiting Lock'],
+    locked:['b-locked','✓ Locked'],cancelled:['b-cancelled','Cancelled'],
+    present:['b-present','✅ Present'],leave:['b-leave','🏖️ Leave'],
+    mc:['b-mc','🏥 MC'],absent:['b-absent','❌ Absent']};
+  const[cls,lbl]=map[s]||['b-pending',s];
+  return`<span class="badge ${cls}">${lbl}</span>`;
+}
+function genBatchId(){return'B'+Date.now().toString(36).toUpperCase();}
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function isWeekday(dateStr){const d=new Date(dateStr+'T00:00:00');const day=d.getDay();return day>=1&&day<=5;}
+
+// ============ TABS ============
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');$('view-'+t.dataset.view).classList.add('active');
+  };
+});
+
+// ============ KEY HOLDERS ============
+function renderHolders(){
+  const holders=DB.get('holders');
+  const khSel=$('khSelect');khSel.innerHTML='<option value="">— Select Your Name —</option>';
+  holders.forEach(h=>{khSel.innerHTML+=`<option value="${h.id}">${h.name} — ${h.role}</option>`;});
+  const list=$('holdersList');
+  if(!holders.length){list.innerHTML='<div class="empty">No key holders yet</div>';return;}
+  let h='<table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th></th></tr></thead><tbody>';
+  holders.forEach(x=>{h+=`<tr><td>${x.name}</td><td>${x.phone}</td><td>${x.role}</td><td><button class="btn-da" onclick="delHolder('${x.id}')">Remove</button></td></tr>`;});
+  list.innerHTML=h+'</tbody></table>';
+}
+window.delHolder=id=>{if(!confirm('Remove?'))return;DB.set('holders',DB.get('holders').filter(h=>h.id!==id));renderHolders();toast('Removed');};
+$('holderForm').onsubmit=e=>{
+  e.preventDefault();const holders=DB.get('holders');
+  holders.push({id:DB.genId(),name:$('h-name').value.trim(),phone:$('h-phone').value.trim(),role:$('h-role').value.trim()});
+  DB.set('holders',holders);e.target.reset();renderHolders();toast('Key holder added');
+};
+
+// ============ TEAM MEMBERS ============
+function renderMembers(){
+  const members=DB.get('members');const list=$('membersList');
+  if(!members.length){list.innerHTML='<div class="empty">No team members yet</div>';return;}
+  let h='<table><thead><tr><th>Name</th><th>Team</th><th></th></tr></thead><tbody>';
+  members.forEach(m=>{
+    const tl=m.team==='office'?'🏢 Office Hours':`Team ${m.team} (Shift)`;
+    h+=`<tr><td>${m.name}</td><td>${tl}</td><td><button class="btn-da" onclick="delMember('${m.id}')">Remove</button></td></tr>`;
+  });
+  list.innerHTML=h+'</tbody></table>';
+}
+window.delMember=id=>{if(!confirm('Remove?'))return;DB.set('members',DB.get('members').filter(m=>m.id!==id));renderMembers();renderRoster();toast('Removed');};
+$('memberForm').onsubmit=e=>{
+  e.preventDefault();const members=DB.get('members');const team=$('m-team').value;
+  members.push({id:DB.genId(),name:$('m-name').value.trim(),team});
+  DB.set('members',members);e.target.reset();renderMembers();renderRoster();toast('Member added');
+};
+
+// ============ ATTENDANCE ROSTER ============
+let rosterData={};
+
+function renderRoster(){
+  const date=$('att-date').value||todayStr();
+  const shift=$('att-shift').value;
+  const team=$('att-team').value;
+  const members=DB.get('members').filter(m=>m.team===team);
+  const weekday=isWeekday(date);
+
+  if(!members.length){
+    $('rosterMembers').innerHTML=`<div class="empty">
+      <div style="font-size:40px;margin-bottom:12px">👥</div>
+      <div>No members in this team.</div>
+      <div style="font-size:12px;margin-top:8px">Go to <b>⚙️ Manage</b> tab to add members.</div>
+      <button class="btn-p" style="margin-top:16px" onclick="document.querySelector('[data-view=manage]').click()">Go to Manage</button>
+    </div>`;
+    updateSummary();return;
+  }
+
+  const key=`${date}_${shift}_${team}`;
+  rosterData=DB.get('rosters').find(r=>r.key===key)||{key,members:{}};
+
+  const statuses=[
+    {key:'present',icon:'✅',label:'Present',cls:'btn-ok'},
+    {key:'mc',icon:'🏥',label:'MC',cls:'btn-wa'},
+    {key:'leave',icon:'🏖️',label:'Leave',cls:'btn-p'},
+    {key:'absent',icon:'❌',label:'Absent',cls:'btn-da'}
+  ];
+
+  const dotColors={present:'var(--ok)',mc:'var(--wa)',leave:'var(--pr)',absent:'var(--da)'};
+
+  let html='';
+  members.forEach(m=>{
+    const data=rosterData.members[m.id]||{};
+    const status=data.status||'present';
+    const remarks=data.remarks||'';
+    const hasOT=data.hasOT||false;
+    const otHours=data.otHours||0;
+    const otType=data.otType||'regular';
+    const otRemarks=data.otRemarks||'';
+    // Office weekday OT 5:30-8:30
+    const officeOT=data.officeOT||false;
+
+    html+=`<div class="roster-member border-${status}">
+      <div class="top-row">
+        <div>
+          <span class="name">${m.name}</span>
+          <span class="team-tag">${m.team==='office'?'Office':'Team '+m.team}</span>
+          <span class="status-dot" style="color:${dotColors[status]}">● ${status.charAt(0).toUpperCase()+status.slice(1)}</span>
+        </div>
+      </div>
+
+      <div class="status-btns">
+        ${statuses.map(s=>`<button type="button" class="${s.cls} ${status===s.key?'selected':''}" onclick="setStatus('${m.id}','${s.key}')">
+          ${s.icon} ${s.label}${status===s.key?' ✓':''}
+        </button>`).join('')}
+      </div>
+
+      <div style="margin-top:10px">
+        <input type="text" placeholder="Remarks — e.g., MC 2 days Dr Tan, Late 30min" value="${escHtml(remarks)}" oninput="updateField('${m.id}','remarks',this.value)" style="padding:8px;font-size:12px"/>
+      </div>`;
+
+    if(status==='present'){
+      // Office hours weekday OT checkbox
+      if(team==='office' && weekday){
+        html+=`<label class="office-ot-check ${officeOT?'checked':''}" onclick="toggleOfficeOT('${m.id}')">
+          <input type="checkbox" ${officeOT?'checked':''} onclick="event.stopPropagation();toggleOfficeOT('${m.id}')"/>
+          <div>
+            <div class="ot-label">🌆 Weekday OT (5:30 PM – 8:30 PM)</div>
+            <div class="ot-desc">Stay back after office hours on weekday (+3 hours)</div>
+          </div>
+        </label>`;
+      }
+
+      html+=`<div style="margin-top:10px">
+        <button type="button" class="btn-ot" style="padding:8px 14px;font-size:12px" onclick="toggleOT('${m.id}')">
+          ${hasOT?'✓ OT Recorded ('+otHours+'h)':'⏰ + Add Overtime'}
+        </button>
+      </div>
+      <div class="ot-section ${hasOT?'show':''}" id="ot-${m.id}">
+        <div style="font-size:12px;color:var(--ot);font-weight:600;margin-bottom:8px">⏰ Overtime Details</div>
+        <div class="ot-grid">
+          <div>
+            <label style="font-size:11px;margin-top:0">OT Hours</label>
+            <input type="number" step="0.5" min="0" value="${otHours}" oninput="updateField('${m.id}','otHours',parseFloat(this.value)||0)" style="padding:6px;font-size:12px"/>
+          </div>
+          <div>
+            <label style="font-size:11px;margin-top:0">OT Type</label>
+            <select onchange="updateField('${m.id}','otType',this.value)" style="padding:6px;font-size:12px">
+              <option value="regular" ${otType==='regular'?'selected':''}>Regular (same shift)</option>
+              <option value="cover" ${otType==='cover'?'selected':''}>Cover (other shift/team)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <label style="font-size:11px;margin-top:0">OT Reason</label>
+          <input type="text" placeholder="e.g., Covered for Ahmad, Weekend work" value="${escHtml(otRemarks)}" oninput="updateField('${m.id}','otRemarks',this.value)" style="padding:6px;font-size:12px"/>
+        </div>
+      </div>`;
+    }
+
+    html+=`</div>`;
+  });
+
+  $('rosterMembers').innerHTML=html;
+  updateSummary();
+}
+
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+window.setStatus=(memberId,status)=>{
+  if(!rosterData.members[memberId])rosterData.members[memberId]={};
+  rosterData.members[memberId].status=status;
+  if(status!=='present'){rosterData.members[memberId].hasOT=false;rosterData.members[memberId].officeOT=false;}
+  renderRoster();
+};
+window.updateField=(memberId,field,value)=>{
+  if(!rosterData.members[memberId])rosterData.members[memberId]={};
+  rosterData.members[memberId][field]=value;
+};
+window.toggleOT=(memberId)=>{
+  if(!rosterData.members[memberId])rosterData.members[memberId]={};
+  rosterData.members[memberId].hasOT=!rosterData.members[memberId].hasOT;
+  if(rosterData.members[memberId].hasOT&&!rosterData.members[memberId].otHours)rosterData.members[memberId].otHours=2;
+  renderRoster();
+};
+window.toggleOfficeOT=(memberId)=>{
+  if(!rosterData.members[memberId])rosterData.members[memberId]={};
+  const newVal=!rosterData.members[memberId].officeOT;
+  rosterData.members[memberId].officeOT=newVal;
+  // Auto-set OT hours to 3 if checked, clear if unchecked
+  if(newVal){
+    rosterData.members[memberId].hasOT=true;
+    rosterData.members[memberId].otHours=(parseFloat(rosterData.members[memberId].otHours)||0)+3;
+    rosterData.members[memberId].otType=rosterData.members[memberId].otType||'regular';
+    rosterData.members[memberId].otRemarks=rosterData.members[memberId].otRemarks||'Weekday OT 5:30PM-8:30PM';
+  }
+  renderRoster();
+};
+window.quickAll=(status)=>{
+  const team=$('att-team').value;
+  const members=DB.get('members').filter(m=>m.team===team);
+  members.forEach(m=>{
+    if(!rosterData.members[m.id])rosterData.members[m.id]={};
+    rosterData.members[m.id].status=status;
+    if(status!=='present'){rosterData.members[m.id].hasOT=false;rosterData.members[m.id].officeOT=false;}
+  });
+  renderRoster();
+};
+
+function updateSummary(){
+  const counts={present:0,mc:0,leave:0,absent:0,ot:0};
+  Object.values(rosterData.members||{}).forEach(m=>{
+    if(m.status)counts[m.status]++;
+    if((m.hasOT||m.officeOT)&&m.status==='present')counts.ot++;
+  });
+  $('sum-present').textContent=counts.present;
+  $('sum-ot').textContent=counts.ot;
+  $('sum-mc').textContent=counts.mc;
+  $('sum-leave').textContent=counts.leave;
+  $('sum-absent').textContent=counts.absent;
+}
+
+window.submitRoster=()=>{
+  const date=$('att-date').value||todayStr();
+  const shift=$('att-shift').value;
+  const team=$('att-team').value;
+  if(!Object.keys(rosterData.members||{}).length){toast('Mark at least one member','var(--da)');return;}
+
+  const rosters=DB.get('rosters');
+  const key=`${date}_${shift}_${team}`;
+  const idx=rosters.findIndex(r=>r.key===key);
+  const roster={key,date,shift,team,members:{...rosterData.members},submittedAt:new Date().toISOString(),submittedBy:'Shift Leader'};
+  if(idx>=0)rosters[idx]=roster;else rosters.push(roster);
+  DB.set('rosters',rosters);
+  toast('✅ Roster submitted');renderAttHistory();renderDashboard();
+};
+
+// ============ ATTENDANCE HISTORY ============
+function renderAttHistory(){
+  let rosters=DB.get('rosters').sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt));
+  const filterDate=$('histDate').value;
+  if(filterDate)rosters=rosters.filter(r=>r.date===filterDate);
+  if(!rosters.length){$('attHistory').innerHTML='<div class="empty">No rosters found</div>';return;}
+
+  let h='<table><thead><tr><th>Date</th><th>Shift</th><th>Team</th><th>Present</th><th>OT</th><th>MC</th><th>Leave</th><th>Absent</th><th>Submitted</th></tr></thead><tbody>';
+  rosters.forEach(r=>{
+    const c={present:0,mc:0,leave:0,absent:0,ot:0,officeOT:0};
+    Object.values(r.members).forEach(m=>{
+      if(m.status)c[m.status]++;
+      if((m.hasOT||m.officeOT)&&m.status==='present')c.ot++;
+    });
+    const sl=r.shift==='day'?'☀️ Day':r.shift==='night'?'🌙 Night':'🏢 Office';
+    const tl=r.team==='office'?'Office':'Team '+r.team;
+    h+=`<tr>
+      <td>${r.date}</td><td>${sl}</td><td>${tl}</td>
+      <td style="color:var(--ok)">${c.present}</td>
+      <td style="color:var(--ot)">${c.ot}</td>
+      <td style="color:var(--wa)">${c.mc}</td>
+      <td style="color:var(--pr)">${c.leave}</td>
+      <td style="color:var(--da)">${c.absent}</td>
+      <td>${fmt(r.submittedAt)}</td>
+    </tr>`;
+  });
+  $('attHistory').innerHTML=h+'</tbody></table>';
+}
+
+// ============ REQUESTOR ============
+let blockCounter=0;
+function addBlockRow(){
+  blockCounter++;const id='br_'+blockCounter;const div=document.createElement('div');
+  div.className='block-row';div.id=id;
+  div.innerHTML=`<button type="button" class="rm" onclick="document.getElementById('${id}').remove()">×</button>
+    <div class="row-grid"><div><label>Block *</label><input class="br-block" required placeholder="BLK 123"/></div>
+    <div><label>Duration</label><input class="br-time" placeholder="e.g. 2 hours"/></div></div>
+    <label>Reason *</label><textarea class="br-reason" required placeholder="Describe work..."></textarea>`;
+  $('blockList').appendChild(div);
+}
+window.addBlockRow=addBlockRow;
+
+$('reqForm').onsubmit=e=>{
+  e.preventDefault();const rows=document.querySelectorAll('.block-row');
+  if(!rows.length){toast('Add at least one block','var(--da)');return;}
+  const name=$('r-name').value.trim(),company=$('r-company').value.trim(),phone=$('r-phone').value.trim();
+  const batchId=genBatchId(),reqs=DB.get('requests');let count=0;
+  rows.forEach(row=>{
+    const block=row.querySelector('.br-block').value.trim(),reason=row.querySelector('.br-reason').value.trim(),duration=row.querySelector('.br-time').value.trim();
+    if(!block||!reason)return;
+    reqs.push({id:DB.genId(),batchId,requestorName:name,company,phone,block,reason,duration,
+      keyHolderId:null,keyHolderName:null,status:'pending',createdAt:new Date().toISOString(),
+      checkInAt:null,checkOutAt:null,lockedAt:null,lockedByName:null,history:[{at:new Date().toISOString(),action:'Submitted'}]});
+    count++;
+  });
+  DB.set('requests',reqs);e.target.reset();$('blockList').innerHTML='';addBlockRow();renderDashboard();toast(`✅ Submitted ${count} block(s)`);
+};
+window.trackMyReqs=()=>{
+  const name=$('trackName').value.trim().toLowerCase();if(!name){toast('Enter name','var(--da)');return;}
+  const mine=DB.get('requests').filter(r=>r.requestorName.toLowerCase()===name);
+  if(!mine.length){$('myReqs').innerHTML='<div class="empty">No requests found</div>';return;}
+  $('myReqs').innerHTML=batchGroupHTML(mine);
+};
+
+// ============ ACTIONS ============
+window.act=(id,action)=>{
+  const reqs=DB.get('requests'),r=reqs.find(x=>x.id===id);if(!r)return;
+  const now=new Date().toISOString();r.history=[...(r.history||[]),{at:now,action}];
+  if(action==='approve'){r.status='approved';r.keyHolderId=currentKH.id;r.keyHolderName=currentKH.name;}
+  else if(action==='checkin'){r.status='checked-in';r.checkInAt=now;}
+  else if(action==='checkout'){r.status='awaiting-lock';r.checkOutAt=now;}
+  else if(action==='cancel'){r.status='cancelled';}
+  DB.set('requests',reqs);renderDashboard();renderKH();toast(`Action: ${action}`);
+};
+window.confirmLock=id=>{
+  const by=prompt('Name confirming lock:');if(!by)return;
+  const reqs=DB.get('requests'),r=reqs.find(x=>x.id===id);if(!r)return;
+  r.status='locked';r.lockedAt=new Date().toISOString();r.lockedByName=by;
+  r.history=[...(r.history||[]),{at:new Date().toISOString(),action:'Locked',by}];
+  DB.set('requests',reqs);renderDashboard();toast('🔒 Locked');
+};
+window.khLock=id=>{
+  if(!confirm('Confirm door locked?'))return;
+  const reqs=DB.get('requests'),r=reqs.find(x=>x.id===id);if(!r)return;
+  r.status='locked';r.lockedAt=new Date().toISOString();r.lockedByName=currentKH.name;
+  r.history=[...(r.history||[]),{at:new Date().toISOString(),action:'Locked',by:currentKH.name}];
+  DB.set('requests',reqs);renderDashboard();renderKH();toast('🔒 Locked');
+};
+
+// ============ BATCH RENDERER ============
+function batchGroupHTML(list){
+  const groups={};list.forEach(r=>{const k=r.batchId||r.id;if(!groups[k])groups[k]={batchId:k,items:[],meta:r};groups[k].items.push(r);});
+  let html='';Object.values(groups).forEach(g=>{
+    const m=g.meta;
+    html+=`<div class="batch-group"><h3><span>👤 ${m.requestorName} <small style="color:var(--m);font-weight:normal">• ${m.company}</small></span>
+      <span>${badge(m.status)}</span></h3><div class="batch-meta">📞 ${m.phone} • 🕐 ${fmt(m.createdAt)}</div><div class="batch-blocks">`;
+    g.items.forEach(r=>{html+=`<div class="batch-block"><div class="info"><b>📍 ${r.block}</b> ${badge(r.status)}<small>📝 ${r.reason}</small></div><div class="actions">${dashActions(r)}</div></div>`;});
+    html+=`</div></div>`;
+  });return html;
+}
+function dashActions(r){
+  const b=[];
+  if(r.status==='pending')b.push(`<button class="btn-g" disabled>⏳ Awaiting</button>`);
+  if(r.status==='approved')b.push(`<button class="btn-ok" onclick="act('${r.id}','checkin')">Check In</button>`);
+  if(r.status==='checked-in')b.push(`<button class="btn-wa" onclick="act('${r.id}','checkout')">Check Out</button>`);
+  if(r.status==='awaiting-lock')b.push(`<button class="btn-lk" onclick="confirmLock('${r.id}')">🔒 Lock</button>`);
+  return b.join('');
+}
+
+// ============ DASHBOARD ============
+function renderDashboard(){
+  const reqs=DB.get('requests'),rosters=DB.get('rosters'),today=todayStr();
+  const active=reqs.filter(r=>r.status==='checked-in'),pending=reqs.filter(r=>r.status==='pending'),awaitingLock=reqs.filter(r=>r.status==='awaiting-lock');
+  $('s-onroof').textContent=active.length;$('s-pending').textContent=pending.length;$('s-lock').textContent=awaitingLock.length;
+
+  const todayRosters=rosters.filter(r=>r.date===today);
+  let onSite=0,otCount=0;const otList=[];const members=DB.get('members');
+
+  todayRosters.forEach(r=>{
+    Object.entries(r.members).forEach(([mid,data])=>{
+      if(data.status==='present'){
+        onSite++;
+        const hasAnyOT=data.hasOT||data.officeOT;
+        if(hasAnyOT){
+          otCount++;
+          const member=members.find(m=>m.id===mid);
+          if(member){
+            const otDetails=[];
+            if(data.officeOT)otDetails.push('Weekday 5:30-8:30PM');
+            if(data.hasOT)otDetails.push((data.otType==='cover'?'Cover':'Regular')+' '+data.otHours+'h');
+            otList.push({name:member.name,team:r.team==='office'?'Office':'Team '+r.team,
+              shift:r.shift==='day'?'☀️ Day':r.shift==='night'?'🌙 Night':'🏢 Office',
+              hours:data.otHours||0,officeOT:data.officeOT||false,
+              type:data.otType||'regular',remarks:data.otRemarks||'',details:otDetails.join(' + ')});
+          }
+        }
+      }
+    });
+  });
+
+  $('s-onsite').textContent=onSite;$('s-ot').textContent=otCount;
+
+  if(!todayRosters.length){$('dashAttendance').innerHTML='<div class="empty">No roster submitted today</div>';}
+  else{
+    let h='<div style="display:grid;gap:8px">';
+    todayRosters.forEach(r=>{
+      const c={present:0,mc:0,leave:0,absent:0,ot:0};
+      Object.values(r.members).forEach(m=>{if(m.status)c[m.status]++;if((m.hasOT||m.officeOT)&&m.status==='present')c.ot++;});
+      const sl=r.shift==='day'?'☀️ Day':r.shift==='night'?'🌙 Night':'🏢 Office';
+      const tl=r.team==='office'?'Office':'Team '+r.team;
+      h+=`<div style="background:var(--p2);padding:12px;border-radius:6px"><div style="font-size:13px;font-weight:500;margin-bottom:6px">${tl} • ${sl}</div>
+        <div style="display:flex;gap:12px;font-size:12px;flex-wrap:wrap">
+          <span style="color:var(--ok)">✅ ${c.present}</span>${c.ot?`<span style="color:var(--ot)">⏰ ${c.ot} OT</span>`:''}
+          <span style="color:var(--wa)">🏥 ${c.mc}</span><span style="color:var(--pr)">🏖️ ${c.leave}</span><span style="color:var(--da)">❌ ${c.absent}</span>
+        </div></div>`;
+    });
+    h+='</div>';$('dashAttendance').innerHTML=h;
+  }
+
+  if(!otList.length){$('dashOT').innerHTML='<div class="empty">No overtime today</div>';}
+  else{
+    let h='<div style="display:grid;gap:8px">';
+    otList.forEach(ot=>{
+      h+=`<div style="background:var(--p2);padding:12px;border-radius:6px;border-left:3px solid var(--ot)">
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px">${ot.name} <span style="color:var(--m);font-size:11px">${ot.team} • ${ot.shift}</span></div>
+        <div style="font-size:12px;color:var(--ot);font-weight:600">⏰ ${ot.details}</div>
+        ${ot.remarks&&ot.remarks!=='Weekday OT 5:30PM-8:30PM'?`<div style="font-size:11px;color:var(--m);margin-top:4px">${ot.remarks}</div>`:''}
+      </div>`;
+    });
+    h+='</div>';$('dashOT').innerHTML=h;
+  }
+
+  $('dashRooftop').innerHTML=active.length?batchGroupHTML(active):'<div class="empty">No one on rooftop ✓</div>';
+  $('dashLock').innerHTML=awaitingLock.length?batchGroupHTML(awaitingLock):'<div class="empty">All doors secured ✓</div>';
+  $('dashPending').innerHTML=pending.length?batchGroupHTML(pending):'<div class="empty">No pending requests</div>';
+}
+
+// ============ KEY HOLDER ============
+let currentKH=null,khFilter='all';
+window.khLogin=()=>{
+  const id=$('khSelect').value;if(!id){toast('Select name','var(--da)');return;}
+  const h=DB.get('holders').find(x=>x.id===id);currentKH=h;$('khName').textContent=h.name;
+  $('khLoginBox').style.display='none';$('khDashBox').style.display='block';renderKH();
+};
+window.khLogout=()=>{currentKH=null;$('khLoginBox').style.display='block';$('khDashBox').style.display='none';};
+document.querySelectorAll('#khFilter button').forEach(b=>{
+  b.onclick=()=>{document.querySelectorAll('#khFilter button').forEach(x=>x.classList.remove('active'));b.classList.add('active');khFilter=b.dataset.f;renderKH();};
+});
+function renderKH(){
+  if(!currentKH)return;const all=DB.get('requests');let mine;
+  if(khFilter==='pending')mine=all.filter(r=>r.status==='pending');
+  else if(khFilter==='all')mine=all.filter(r=>r.keyHolderId===currentKH.id||r.status==='pending');
+  else mine=all.filter(r=>r.keyHolderId===currentKH.id&&r.status===khFilter);
+  const groups={};mine.forEach(r=>{const k=r.batchId||r.id;if(!groups[k])groups[k]={batchId:k,items:[],meta:r};groups[k].items.push(r);});
+  const box=$('khTasks');
+  if(!Object.keys(groups).length){box.innerHTML='<div class="empty">No requests</div>';return;}
+  let html='';Object.values(groups).forEach(g=>{
+    const m=g.meta,claimable=m.status==='pending'&&!m.keyHolderId;
+    html+=`<div class="card" style="margin-bottom:12px${claimable?';border:2px dashed var(--wa)':''}">
+      <h2 style="font-size:14px;margin-bottom:4px">👤 ${m.requestorName} • ${m.company}</h2>
+      <div style="font-size:12px;color:var(--m);margin-bottom:12px">📞 ${m.phone} • Batch ${m.batchId}${claimable?' • <span style="color:var(--wa)">🆕 AVAILABLE</span>':''}</div>`;
+    g.items.forEach(r=>{html+=`<div class="kh-task status-${r.status}"><h4>📍 ${r.block} ${badge(r.status)}</h4><div class="reason">📝 ${r.reason}</div><div class="big-btns">${khActions(r)}</div></div>`;});
+    html+=`</div>`;
+  });box.innerHTML=html;
+}
+function khActions(r){
+  const b=[];
+  if(r.status==='pending'){
+    if(!r.keyHolderId)b.push(`<button class="btn-wa" onclick="act('${r.id}','approve')">🔑 Claim</button>`);
+    else if(r.keyHolderId===currentKH.id)b.push(`<button class="btn-ok" onclick="act('${r.id}','checkin')">🚪 Check In</button>`);
+    else b.push(`<button class="btn-g" disabled>Claimed</button>`);
+  }
+  if(r.status==='approved'&&r.keyHolderId===currentKH.id)b.push(`<button class="btn-ok" onclick="act('${r.id}','checkin')">🚪 Check In</button>`);
+  if(r.status==='checked-in'&&r.keyHolderId===currentKH.id)b.push(`<button class="btn-wa" onclick="act('${r.id}','checkout')">🚪 Check Out</button>`);
+  if(r.status==='awaiting-lock'&&r.keyHolderId===currentKH.id)b.push(`<button class="btn-lk" onclick="khLock('${r.id}')">🔒 Lock</button>`);
+  if(r.status==='locked')b.push(`<button class="btn-g" disabled>✓ Done</button>`);
+  return b.join('');
+}
+
+// ============ SAMPLE DATA ============
+window.loadSampleData=()=>{
+  if(!confirm('Load sample data?'))return;
+  DB.set('holders',[
+    {id:'kh_ali',name:'Ali Bin Hassan',phone:'+65 9111 1111',role:'Security Supervisor'},
+    {id:'kh_siti',name:'Siti Aminah',phone:'+65 9222 2222',role:'Facility Manager'}
+  ]);
+  DB.set('members',[
+    {id:'m1',name:'Ahmad bin Ali',team:'A'},{id:'m2',name:'Bala Krishnan',team:'A'},{id:'m3',name:'Chen Wei Liang',team:'A'},
+    {id:'m4',name:'David Tan',team:'B'},{id:'m5',name:'Fatimah Noor',team:'B'},{id:'m6',name:'Ganesh Kumar',team:'B'},
+    {id:'m7',name:'Hassan Ali',team:'C'},{id:'m8',name:'Ismail Yusof',team:'C'},
+    {id:'m9',name:'Jenny Lim',team:'office'},{id:'m10',name:'Kumar Raj',team:'office'},{id:'m11',name:'Lisa Wang',team:'office'}
+  ]);
+
+  const today=todayStr();
+  const weekday=isWeekday(today);
+  const officeMembers={m9:{status:'present',remarks:'',hasOT:false,officeOT:weekday,otHours:weekday?3:0,otType:'regular',otRemarks:weekday?'Weekday OT 5:30PM-8:30PM':''},
+    m10:{status:'present',remarks:'',hasOT:false,officeOT:false},
+    m11:{status:'mc',remarks:'MC 1 day'}};
+
+  DB.set('rosters',[
+    {key:`${today}_day_A`,date:today,shift:'day',team:'A',members:{
+      m1:{status:'present',remarks:'',hasOT:true,otHours:2,otType:'regular',otRemarks:'Stayed late for report'},
+      m2:{status:'mc',remarks:'MC 2 days'},m3:{status:'present',remarks:''}
+    },submittedAt:new Date().toISOString(),submittedBy:'Ali'},
+    {key:`${today}_office_office`,date:today,shift:'office',team:'office',members:officeMembers,
+      submittedAt:new Date().toISOString(),submittedBy:'Siti'}
+  ]);
+
+  const now=new Date(),hAgo=h=>new Date(now.getTime()-h*3600000).toISOString();
+  DB.set('requests',[
+    {id:'r1',batchId:'B123',requestorName:'John Tan',company:'CoolAir',phone:'+65 8111 0001',block:'BLK 123',reason:'Service AC unit',duration:'2h',
+     keyHolderId:'kh_ali',keyHolderName:'Ali',status:'checked-in',createdAt:hAgo(2),checkInAt:hAgo(1),checkOutAt:null,lockedAt:null,lockedByName:null,
+     history:[{at:hAgo(2),action:'Submitted'},{at:hAgo(1.5),action:'approve'},{at:hAgo(1),action:'checkin'}]},
+    {id:'r2',batchId:'B124',requestorName:'Mary Lim',company:'SkyTech',phone:'+65 8222 0002',block:'BLK 456',reason:'Antenna repair',duration:'3h',
+     keyHolderId:null,keyHolderName:null,status:'pending',createdAt:hAgo(0.5),checkInAt:null,checkOutAt:null,lockedAt:null,lockedByName:null,
+     history:[{at:hAgo(0.5),action:'Submitted'}]}
+  ]);
+  renderHolders();renderMembers();renderRoster();renderAttHistory();renderDashboard();toast('✅ Sample data loaded');
+};
+window.resetAll=()=>{
+  if(!confirm('Clear ALL data?'))return;
+  ['holders','members','rosters','requests'].forEach(k=>localStorage.removeItem('blk_'+k));
+  renderHolders();renderMembers();renderRoster();renderAttHistory();renderDashboard();toast('Reset');
+};
+
+// ============ INIT ============
+$('att-date').value=todayStr();
+$('att-date').onchange=renderRoster;
+$('att-shift').onchange=renderRoster;
+$('att-team').onchange=renderRoster;
+addBlockRow();renderHolders();renderMembers();renderRoster();renderAttHistory();renderDashboard();
+setInterval(()=>{renderDashboard();if(currentKH)renderKH();},2000);
+</script>
+</body>
+</html>
