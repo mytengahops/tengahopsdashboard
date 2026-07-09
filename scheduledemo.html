@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tengah CCS Appointment Booking System — Demo</title>
+<style>
+  :root{
+    --navy:#0a2540;
+    --navy-2:#0f3358;
+    --navy-3:#163d66;
+    --cyan:#00d4ff;
+    --cyan-soft:#7fe8ff;
+    --aqua:#00b8d9;
+    --bg:#f3f7fb;
+    --card:#ffffff;
+    --text:#0a2540;
+    --muted:#5a6b80;
+    --border:#e1e8f0;
+    --success:#22c55e;
+    --warn:#f59e0b;
+    --danger:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI','Inter',system-ui,sans-serif;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+
+  /* Sidebar - Desktop */
+  .sidebar{
+    width:260px;background:linear-gradient(180deg,var(--navy) 0%,var(--navy-2) 100%);
+    color:#fff;padding:24px 0;display:flex;flex-direction:column;min-height:100vh;
+    box-shadow:4px 0 20px rgba(10,37,64,.15);position:sticky;top:0;
+  }
+  .logo{display:flex;align-items:center;gap:12px;padding:0 24px 24px;border-bottom:1px solid rgba(255,255,255,.1);}
+  .logo-mark{
+    width:42px;height:42px;border-radius:10px;
+    background:linear-gradient(135deg,var(--cyan) 0%,var(--aqua) 100%);
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--navy);
+    box-shadow:0 4px 12px rgba(0,212,255,.35);
+  }
+  .logo-text{font-size:14px;line-height:1.2;}
+  .logo-text b{display:block;font-size:16px;letter-spacing:.3px;}
+  .logo-text span{color:var(--cyan-soft);font-size:11px;letter-spacing:1px;text-transform:uppercase;}
+
+  .nav{margin-top:20px;flex:1;}
+  .nav-title{padding:12px 24px;font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,.5);text-transform:uppercase;}
+  .nav-item{
+    padding:12px 24px;display:flex;align-items:center;gap:12px;cursor:pointer;
+    border-left:3px solid transparent;font-size:14px;color:rgba(255,255,255,.8);
+    transition:all .2s;
+  }
+  .nav-item:hover{background:rgba(0,212,255,.08);color:#fff;}
+  .nav-item.active{
+    background:linear-gradient(90deg,rgba(0,212,255,.15),transparent);
+    border-left-color:var(--cyan);color:#fff;
+  }
+  .nav-item .icon{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;}
+
+  .sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;color:rgba(255,255,255,.6);}
+  .user-chip{display:flex;align-items:center;gap:10px;margin-top:8px;}
+  .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--aqua));display:flex;align-items:center;justify-content:center;color:var(--navy);font-weight:700;font-size:13px;}
+
+  /* Main */
+  .main{flex:1;padding:28px 36px;overflow-x:hidden;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
+  .page-title{font-size:24px;font-weight:700;color:var(--navy);}
+  .page-subtitle{color:var(--muted);font-size:13px;margin-top:4px;}
+  .topbar-right{display:flex;gap:12px;align-items:center;}
+  .search{
+    background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 14px;
+    width:260px;font-size:13px;display:flex;align-items:center;gap:8px;
+  }
+  .search input{border:none;outline:none;flex:1;font-size:13px;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:10px;background:#fff;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;
+  }
+  .icon-btn .dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--danger);}
+
+  /* Mobile Menu Toggle */
+  .menu-toggle{display:none;width:40px;height:40px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-size:20px;cursor:pointer;}
+
+  /* Views */
+  .view{display:none;animation:fadeIn .3s ease;}
+  .view.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* Cards */
+  .card{background:var(--card);border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(10,37,64,.05);border:1px solid var(--border);}
+  .card-title{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+  .card-title .badge{font-size:11px;background:rgba(0,212,255,.12);color:var(--aqua);padding:3px 10px;border-radius:20px;font-weight:600;}
+
+  /* Dashboard grid */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+  .stat{
+    background:var(--card);border-radius:14px;padding:18px;border:1px solid var(--border);
+    position:relative;overflow:hidden;
+  }
+  .stat::before{
+    content:'';position:absolute;top:0;left:0;width:4px;height:100%;
+    background:linear-gradient(180deg,var(--cyan),var(--aqua));
+  }
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+  .stat-value{font-size:28px;font-weight:700;color:var(--navy);margin-top:6px;}
+  .stat-delta{font-size:11px;color:var(--success);margin-top:4px;}
+
+  .dash-grid{display:grid;grid-template-columns:320px 1fr 320px;gap:16px;}
+
+  /* Calendar */
+  .cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .cal-header b{font-size:14px;color:var(--navy);}
+  .cal-nav{display:flex;gap:6px;}
+  .cal-nav button{
+    width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:#fff;
+    cursor:pointer;color:var(--navy);font-size:12px;
+  }
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-day-name{text-align:center;font-size:10px;color:var(--muted);padding:6px 0;text-transform:uppercase;letter-spacing:1px;}
+  .cal-day{
+    aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;
+    font-size:12px;cursor:pointer;position:relative;transition:all .15s;min-height:40px;
+  }
+  .cal-day:hover{background:rgba(0,212,255,.08);}
+  .cal-day.other{color:#c5cfd9;}
+  .cal-day.today{background:var(--navy);color:#fff;font-weight:700;}
+  .cal-day.selected{background:linear-gradient(135deg,var(--cyan),var(--aqua));color:var(--navy);font-weight:700;box-shadow:0 4px 12px rgba(0,212,255,.35);}
+  .cal-day.has-appt::after{
+    content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--cyan);
+  }
+  .cal-day.today.has-appt::after,.cal-day.selected.has-appt::after{background:#fff;}
+
+  /* Movements */
+  .movement{
+    display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;
+    border:1px solid var(--border);margin-bottom:8px;
+  }
+  .movement .avatar{width:34px;height:34px;font-size:12px;}
+  .movement-info{flex:1;}
+  .movement-info b{font-size:13px;display:block;color:var(--navy);}
+  .movement-info span{font-size:11px;color:var(--muted);}
+  .status-pill{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;}
+  .status-on{background:rgba(34,197,94,.12);color:#16a34a;}
+  .status-ml{background:rgba(239,68,68,.12);color:#dc2626;}
+  .status-al{background:rgba(245,158,11,.12);color:#d97706;}
+  .status-off{background:rgba(100,116,139,.12);color:#64748b;}
+
+  /* Timeline */
+  .timeline{position:relative;padding-left:28px;}
+  .timeline::before{
+    content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;
+    background:linear-gradient(180deg,var(--cyan),var(--aqua),transparent);
+  }
+  .appt{
+    position:relative;margin-bottom:14px;padding:14px 16px;border-radius:12px;
+    background:#fff;border:1px solid var(--border);cursor:pointer;transition:all .2s;
+  }
+  .appt:hover{transform:translateX(4px);box-shadow:0 6px 16px rgba(10,37,64,.08);border-color:var(--cyan);}
+  .appt::before{
+    content:'';position:absolute;left:-24px;top:18px;width:12px;height:12px;border-radius:50%;
+    background:#fff;border:3px solid var(--cyan);
+  }
+  .appt-time{font-size:11px;color:var(--aqua);font-weight:700;letter-spacing:.5px;}
+  .appt-title{font-size:14px;font-weight:600;color:var(--navy);margin-top:4px;}
+  .appt-meta{font-size:12px;color:var(--muted);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;}
+  .appt-tag{
+    display:inline-block;font-size:10px;padding:2px 8px;border-radius:12px;
+    margin-top:8px;font-weight:600;
+  }
+  .tag-joint{background:rgba(0,212,255,.12);color:var(--aqua);}
+  .tag-quality{background:rgba(139,92,246,.12);color:#7c3aed;}
+  .tag-assess{background:rgba(245,158,11,.12);color:#d97706;}
+  .tag-emergency{background:rgba(239,68,68,.15);color:#dc2626;}
+  .tag-other{background:rgba(100,116,139,.12);color:#475569;}
+
+  /* Booking form */
+  .booking-layout{display:grid;grid-template-columns:1fr 380px;gap:16px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+  .form-group{display:flex;flex-direction:column;}
+  .form-group label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600;}
+  .form-group input,.form-group select,.form-group textarea{
+    padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;
+    background:#fff;color:var(--navy);outline:none;transition:all .15s;font-family:inherit;
+  }
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+    border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,212,255,.15);
+  }
+
+  /* Timeslot grid */
+  .slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .slot{
+    padding:10px;border:1px solid var(--border);border-radius:10px;text-align:center;
+    font-size:12px;font-weight:600;cursor:pointer;background:#fff;transition:all .15s;
+    color:var(--navy);min-height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .slot:hover:not(.disabled):not(.booked){border-color:var(--cyan);background:rgba(0,212,255,.05);}
+  .slot.selected{
+    background:linear-gradient(135deg,var(--cyan),var(--aqua));color:var(--navy);
+    border-color:transparent;box-shadow:0 4px 12px rgba(0,212,255,.3);
+  }
+  .slot.disabled{background:#f1f5f9;color:#cbd5e1;cursor:not-allowed;text-decoration:line-through;}
+  .slot.booked{background:#fef2f2;color:#dc2626;cursor:not-allowed;border-color:#fecaca;}
+  .slot.emergency{border:1px dashed var(--danger);color:var(--danger);}
+  .slot.emergency.selected{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;}
+  .slot-label{font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.5px;text-transform:uppercase;}
+  .slot.selected .slot-label{color:rgba(10,37,64,.7);}
+
+  /* HTML Overlay button demo */
+  .html-btn-wrap{position:relative;display:inline-block;}
+  .html-btn{
+    padding:12px 28px;border-radius:12px;color:#fff;font-weight:600;font-size:13px;
+    background:linear-gradient(135deg,var(--cyan) 0%,var(--aqua) 50%,var(--navy-3) 100%);
+    box-shadow:0 6px 18px rgba(0,212,255,.35);letter-spacing:.3px;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .html-btn.ghost{background:transparent;border:1px solid var(--border);color:var(--navy);box-shadow:none;}
+  .html-btn.danger{background:linear-gradient(135deg,#ef4444,#b91c1c);box-shadow:0 6px 18px rgba(239,68,68,.3);}
+  .native-overlay{
+    position:absolute;inset:0;background:transparent;border:none;cursor:pointer;
+    border-radius:12px;transition:all .15s;
+  }
+  .native-overlay:hover{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 2px rgba(255,255,255,.4);}
+  .native-overlay:active{transform:scale(.98);}
+
+  /* Manage bookings */
+  .manage-layout{display:grid;grid-template-columns:1fr 360px;gap:16px;}
+  .appt-card{
+    background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;
+    margin-bottom:10px;cursor:pointer;transition:all .2s;display:flex;gap:12px;
+  }
+  .appt-card:hover{border-color:var(--cyan);transform:translateX(2px);}
+  .appt-card.selected{border-color:var(--cyan);box-shadow:0 4px 16px rgba(0,212,255,.15);}
+  .appt-card .time-block{
+    min-width:60px;text-align:center;padding:8px;border-radius:8px;
+    background:linear-gradient(135deg,rgba(0,212,255,.1),rgba(0,184,217,.1));
+  }
+  .appt-card .time-block b{font-size:14px;color:var(--navy);display:block;}
+  .appt-card .time-block span{font-size:10px;color:var(--aqua);text-transform:uppercase;letter-spacing:1px;}
+
+  /* Side panel */
+  .side-panel{
+    background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;
+    position:sticky;top:28px;
+  }
+  .panel-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
+  .panel-empty .icon{font-size:40px;margin-bottom:10px;opacity:.4;}
+
+  /* Team management */
+  .team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  .team-card{
+    background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .team-card .avatar{width:46px;height:46px;font-size:15px;}
+  .team-card-info{flex:1;}
+  .team-card-info b{display:block;color:var(--navy);font-size:14px;}
+  .team-card-info span{font-size:11px;color:var(--muted);}
+
+  .leave-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .leave-table th{
+    text-align:left;padding:10px 12px;background:#f8fafc;color:var(--muted);
+    font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;
+  }
+  .leave-table td{padding:12px;border-bottom:1px solid var(--border);}
+  .leave-table tr:hover{background:#f8fafc;}
+
+  /* Modal */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(10,37,64,.55);backdrop-filter:blur(4px);
+    display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+  }
+  .modal-backdrop.show{display:flex;animation:fadeIn .2s;}
+  .modal{
+    background:#fff;border-radius:16px;padding:24px;width:440px;max-width:100%;
+    box-shadow:0 20px 60px rgba(10,37,64,.3);
+  }
+  .modal h3{color:var(--navy);margin-bottom:6px;}
+  .modal p{color:var(--muted);font-size:13px;margin-bottom:16px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;}
+
+  /* Toast */
+  .toast{
+    position:fixed;bottom:24px;right:24px;left:24px;background:var(--navy);color:#fff;
+    padding:14px 20px;border-radius:12px;box-shadow:0 10px 30px rgba(10,37,64,.3);
+    display:none;align-items:center;gap:10px;z-index:200;font-size:13px;
+    border-left:4px solid var(--cyan);
+  }
+  .toast.show{display:flex;animation:slideUp .3s;}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:none;opacity:1;}}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:10px;}
+  .legend-item{display:flex;align-items:center;gap:6px;}
+  .legend-dot{width:10px;height:10px;border-radius:3px;}
+
+  .section-title{font-size:13px;font-weight:600;color:var(--navy);margin:14px 0 10px;text-transform:uppercase;letter-spacing:1px;}
+
+  .info-banner{
+    background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(0,184,217,.08));
+    border:1px solid rgba(0,212,255,.25);border-radius:12px;padding:12px 16px;
+    font-size:12px;color:var(--navy);margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;
+  }
+  .info-banner .icon{color:var(--aqua);font-size:16px;}
+
+  /* MOBILE RESPONSIVE STYLES */
+  @media (max-width: 1024px) {
+    .dash-grid{grid-template-columns:1fr;}
+    .booking-layout{grid-template-columns:1fr;}
+    .manage-layout{grid-template-columns:1fr;}
+    .side-panel{position:static;}
+  }
+
+  @media (max-width: 768px) {
+    body{flex-direction:column;}
+    
+    .sidebar{
+      position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;
+      transform:translateX(-100%);transition:transform .3s ease;
+      width:100%;padding-top:60px;
+    }
+    .sidebar.open{transform:translateX(0);}
+    
+    .menu-toggle{display:flex;align-items:center;justify-content:center;}
+    
+    .main{padding:16px;width:100%;}
+    .topbar{margin-bottom:16px;flex-wrap:wrap;gap:12px;}
+    .page-title{font-size:20px;}
+    .page-subtitle{font-size:12px;}
+    .search{width:100%;order:3;}
+    
+    .stats{grid-template-columns:repeat(2,1fr);gap:12px;}
+    .stat-value{font-size:24px;}
+    .stat-label{font-size:10px;}
+    
+    .card{padding:16px;border-radius:12px;}
+    .card-title{font-size:13px;margin-bottom:12px;}
+    
+    .cal-day{font-size:14px;min-height:44px;}
+    .cal-day-name{font-size:11px;padding:8px 0;}
+    
+    .form-row{grid-template-columns:1fr;gap:12px;}
+    .form-group input,.form-group select,.form-group textarea{
+      padding:12px 14px;font-size:16px; /* Prevent zoom on iOS */
+    }
+    
+    .slot-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .slot{min-height:60px;font-size:14px;padding:12px;}
+    
+    .team-grid{grid-template-columns:1fr;}
+    
+    .timeline{padding-left:20px;}
+    .appt{padding:12px;margin-bottom:12px;}
+    .appt-title{font-size:13px;}
+    .appt-meta{font-size:11px;}
+    
+    .movement{padding:12px;}
+    .movement-info b{font-size:14px;}
+    
+    .appt-card{flex-direction:column;gap:10px;}
+    .appt-card .time-block{min-width:100%;text-align:left;padding:10px;}
+    
+    .modal{padding:20px;}
+    .modal-actions{flex-direction:column;}
+    .modal-actions .html-btn-wrap{width:100%;}
+    .html-btn{width:100%;justify-content:center;padding:14px;}
+    
+    .legend{gap:10px;}
+    .legend-item{font-size:10px;}
+    
+    .info-banner{font-size:11px;padding:10px 12px;}
+    .info-banner .icon{font-size:14px;}
+    
+    .nav-item{padding:16px 24px;font-size:16px;}
+    .nav-title{padding:16px 24px;font-size:11px;}
+    
+    .leave-table{font-size:12px;}
+    .leave-table th,.leave-table td{padding:8px;}
+  }
+
+  @media (max-width: 480px) {
+    .stats{grid-template-columns:1fr;}
+    .stat{padding:14px;}
+    .stat-value{font-size:28px;}
+    
+    .slot-grid{grid-template-columns:1fr;}
+    .slot{min-height:50px;}
+    
+    .topbar-right{width:100%;justify-content:space-between;}
+    .search{width:100%;}
+    
+    .page-title{font-size:18px;width:100%;}
+    
+    .cal-grid{gap:2px;}
+    .cal-day{font-size:13px;min-height:40px;border-radius:6px;}
+    
+    .html-btn{padding:12px 20px;font-size:14px;}
+    
+    .appt-tag{font-size:9px;padding:2px 6px;}
+  }
+
+  /* Close sidebar overlay */
+  .sidebar-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+    z-index:999;backdrop-filter:blur(2px);
+  }
+  .sidebar-overlay.show{display:block;}
+</style>
+</head>
+<body>
+
+<!-- Sidebar Overlay for Mobile -->
+<div class="sidebar-overlay" onclick="toggleMenu()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-mark">SP</div>
+    <div class="logo-text">
+      <b>Tengah CCS</b>
+      <span>Booking System</span>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-title">Operations</div>
+    <div class="nav-item active" data-view="dashboard"><span class="icon">◫</span> Daily Dashboard</div>
+    <div class="nav-item" data-view="booking"><span class="icon">＋</span> New Booking</div>
+    <div class="nav-item" data-view="manage"><span class="icon">≡</span> Manage Bookings</div>
+
+    <div class="nav-title" style="margin-top:16px;">Administration</div>
+    <div class="nav-item" data-view="team"><span class="icon">👥</span> Team & Leave</div>
+    <div class="nav-item" data-view="ui"><span class="icon">◆</span> UI Components</div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div style="color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1px;">SIGNED IN AS</div>
+    <div class="user-chip">
+      <div class="avatar">LW</div>
+      <div>
+        <div style="color:#fff;font-size:13px;font-weight:600;">Lim Wei</div>
+        <div style="font-size:11px;">Senior Officer</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <div style="flex:1;">
+      <div class="page-title" id="pageTitle">Daily Dashboard</div>
+      <div class="page-subtitle" id="pageSubtitle">Thursday, 09 July 2026 · Control center for all CCS appointments</div>
+    </div>
+    <div class="topbar-right">
+      <div class="search">
+        <span>🔍</span>
+        <input placeholder="Search resident, block, unit...">
+      </div>
+      <div class="icon-btn" title="Notifications">🔔<span class="dot"></span></div>
+      <div class="icon-btn" title="Settings">⚙</div>
+    </div>
+  </div>
+
+  <!-- VIEW: DASHBOARD -->
+  <section class="view active" id="view-dashboard">
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Today's Appointments</div><div class="stat-value">14</div><div class="stat-delta">▲ 2 vs yesterday</div></div>
+      <div class="stat"><div class="stat-label">Officers On Duty</div><div class="stat-value">5 / 7</div><div class="stat-delta">2 on leave</div></div>
+      <div class="stat"><div class="stat-label">Emergencies</div><div class="stat-value">1</div><div class="stat-delta" style="color:var(--danger);">Active now</div></div>
+      <div class="stat"><div class="stat-label">Completion Rate</div><div class="stat-value">92%</div><div class="stat-delta">▲ 4% this week</div></div>
+    </div>
+
+    <div class="dash-grid">
+      <!-- Calendar -->
+      <div class="card">
+        <div class="card-title">Select Date <span class="badge" id="selectedDateBadge">09 Jul 2026</span></div>
+        <div class="cal-header">
+          <button class="cal-nav" style="border:none;background:none;padding:0;"><div class="cal-nav"><button>‹</button><button>›</button></div></button>
+          <b id="calMonth">July 2026</b>
+          <div></div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="legend" style="margin-top:14px;">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cyan);"></div>Selected</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--navy);"></div>Today</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cyan);border-radius:50%;"></div>Has appointments</div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="card">
+        <div class="card-title">Schedule Timeline <span class="badge" id="apptCount">14 appointments</span></div>
+        <div class="timeline" id="timeline"></div>
+      </div>
+
+      <!-- Movements -->
+      <div class="card">
+        <div class="card-title">Daily Movements <span class="badge">Team</span></div>
+        <div id="movements"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW: NEW BOOKING -->
+  <section class="view" id="view-booking">
+    <div class="info-banner">
+      <span class="icon">ℹ</span>
+      <div><b>Smart Validation Active.</b> The system auto-hides slots where the assigned officer is on leave, blocks 12:00–13:00 lunch, and only unlocks 17:30 / 18:30 when "Emergency" is selected.</div>
+    </div>
+
+    <div class="booking-layout">
+      <div class="card">
+        <div class="card-title">Booking Details</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Appointment Date</label>
+            <input type="date" id="bkDate" value="2026-07-10">
+          </div>
+          <div class="form-group">
+            <label>Assigned Officer</label>
+            <select id="bkOfficer">
+              <option>Lim Wei</option>
+              <option>Tan Mei Ling</option>
+              <option>Rajesh Kumar</option>
+              <option>Siti Aminah</option>
+              <option>Ahmad Faizal</option>
+              <option disabled style="color:#999;">Chen Jian (On AL)</option>
+              <option disabled style="color:#999;">Priya Nair (On ML)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Reason of Visit</label>
+            <select id="bkReason">
+              <option>Assessment</option>
+              <option>Joint Inspection with Daikin</option>
+              <option>Joint Inspection with Interior Designer</option>
+              <option>Joint Inspection with Others</option>
+              <option>Quality Inspection</option>
+              <option>Emergency</option>
+              <option>Others</option>
+            </select>
+          </div>
+          <div class="form-group" id="remarksWrap" style="display:none;">
+            <label>Remarks</label>
+            <input type="text" placeholder="Specify reason...">
+          </div>
+        </div>
+
+        <div class="section-title">Select Time Slot</div>
+        <div class="slot-grid" id="slotGrid"></div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#fff;border:1px solid var(--border);"></div>Available</div>
+          <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,var(--cyan),var(--aqua));"></div>Selected</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#fef2f2;border:1px solid #fecaca;"></div>Booked</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f1f5f9;"></div>Lunch / Disabled</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#fff;border:1px dashed var(--danger);"></div>Emergency Only</div>
+        </div>
+
+        <div class="section-title" style="margin-top:20px;">Resident Details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Resident Name</label>
+            <input type="text" placeholder="e.g. Mr. David Wong">
+          </div>
+          <div class="form-group">
+            <label>Block No.</label>
+            <input type="text" placeholder="e.g. 148A">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Unit No.</label>
+            <input type="text" placeholder="e.g. 12-345">
+          </div>
+          <div class="form-group">
+            <label>Contact (Optional)</label>
+            <input type="text" placeholder="+65 ...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="card" style="position:sticky;top:28px;height:fit-content;">
+        <div class="card-title">Booking Summary</div>
+        <div id="summary" style="font-size:13px;line-height:1.9;color:var(--muted);">
+          <div><b style="color:var(--navy);">Date:</b> <span id="sumDate">10 Jul 2026</span></div>
+          <div><b style="color:var(--navy);">Officer:</b> <span id="sumOfficer">Lim Wei</span></div>
+          <div><b style="color:var(--navy);">Reason:</b> <span id="sumReason">Assessment</span></div>
+          <div><b style="color:var(--navy);">Time:</b> <span id="sumTime" style="color:var(--aqua);font-weight:600;">Not selected</span></div>
+          <div><b style="color:var(--navy);">Status:</b> <span style="color:var(--warn);font-weight:600;">Draft</span></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="html-btn-wrap" style="width:100%;">
+            <div class="html-btn" style="width:100%;justify-content:center;">✓ Confirm Booking</div>
+            <button class="native-overlay" onclick="submitBooking()"></button>
+          </div>
+          <div class="html-btn-wrap" style="width:100%;">
+            <div class="html-btn ghost" style="width:100%;justify-content:center;">Save as Draft</div>
+            <button class="native-overlay" onclick="showToast('Draft saved locally')"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW: MANAGE -->
+  <section class="view" id="view-manage">
+    <div class="manage-layout">
+      <div class="card">
+        <div class="card-title">All Appointments <span class="badge" id="manageCount">Upcoming</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="Scheduled">Scheduled</button>
+          <button class="filter-btn" data-filter="Rescheduled">Rescheduled</button>
+          <button class="filter-btn" data-filter="Cancelled">Cancelled</button>
+        </div>
+        <div id="manageList"></div>
+      </div>
+
+      <div class="side-panel" id="sidePanel">
+        <div class="panel-empty">
+          <div class="icon">📋</div>
+          <div>Select an appointment to view details, reschedule, or cancel.</div>
+        </div>
+      </div>
+    </div>
+    <style>
+      .filter-btn{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:12px;cursor:pointer;color:var(--muted);font-weight:600;}
+      .filter-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+    </style>
+  </section>
+
+  <!-- VIEW: TEAM -->
+  <section class="view" id="view-team">
+    <div class="stats" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat"><div class="stat-label">Total Officers</div><div class="stat-value">7</div></div>
+      <div class="stat"><div class="stat-label">Active Today</div><div class="stat-value">5</div></div>
+      <div class="stat"><div class="stat-label">On Leave</div><div class="stat-value">2</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Team Roster <button class="html-btn-wrap"><span class="html-btn" style="padding:6px 14px;font-size:11px;">+ Add Officer</span><button class="native-overlay" onclick="showToast('Officer added')"></button></button></div>
+      <div class="team-grid" id="teamGrid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Leave Blocks <span class="badge">SharePoint: Leave_Blocks</span></div>
+      <div style="overflow-x:auto;">
+        <table class="leave-table">
+          <thead><tr><th>Officer</th><th>Date</th><th>Type</th><th>Remarks</th><th>Action</th></tr></thead>
+          <tbody id="leaveTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW: UI COMPONENTS -->
+  <section class="view" id="view-ui">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">HTML Overlay Technique — PowerApps HtmlText + Native Button</div>
+      <div class="info-banner">
+        <span class="icon">⚡</span>
+        <div><b>How it works:</b> The styled gradient button below is rendered via the PowerApps <code>HtmlText</code> control (pure HTML/CSS). A transparent native <code>Button</code> control is overlaid on top with <code>DisplayMode.Edit</code> to capture <code>OnSelect</code> events and provide hover/pressed states — bypassing native design limitations.</div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;padding:20px 0;">
+        <div class="html-btn-wrap">
+          <div class="html-btn">✓ Confirm Booking</div>
+          <button class="native-overlay" onclick="showToast('Primary action triggered')"></button>
+        </div>
+        <div class="html-btn-wrap">
+          <div class="html-btn ghost">Save Draft</div>
+          <button class="native-overlay" onclick="showToast('Ghost action triggered')"></button>
+        </div>
+        <div class="html-btn-wrap">
+          <div class="html-btn danger">Cancel Appointment</div>
+          <button class="native-overlay" onclick="openCancelModal()"></button>
+        </div>
+      </div>
+      <div style="background:#f8fafc;border-radius:10px;padding:14px;font-family:monospace;font-size:11px;color:var(--navy);line-height:1.7;overflow-x:auto;">
+&lt;div style="padding:12px 28px;border-radius:12px;color:#fff;font-weight:600;<br>
+&nbsp;&nbsp;background:linear-gradient(135deg,#00d4ff 0%,#00b8d9 50%,#163d66 100%);<br>
+&nbsp;&nbsp;box-shadow:0 6px 18px rgba(0,212,255,.35);"&gt;<br>
+&nbsp;&nbsp;✓ Confirm Booking<br>
+&lt;/div&gt;
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Brand Palette — SP Group Guidelines</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+        <div><div style="height:80px;border-radius:10px;background:#0a2540;"></div><div style="font-size:11px;margin-top:6px;"><b>Deep Navy</b><br><span style="color:var(--muted);">#0a2540</span></div></div>
+        <div><div style="height:80px;border-radius:10px;background:#0f3358;"></div><div style="font-size:11px;margin-top:6px;"><b>Navy 2</b><br><span style="color:var(--muted);">#0f3358</span></div></div>
+        <div><div style="height:80px;border-radius:10px;background:#00d4ff;"></div><div style="font-size:11px;margin-top:6px;"><b>Cyan</b><br><span style="color:var(--muted);">#00d4ff</span></div></div>
+        <div><div style="height:80px;border-radius:10px;background:#00b8d9;"></div><div style="font-size:11px;margin-top:6px;"><b>Aqua</b><br><span style="color:var(--muted);">#00b8d9</span></div></div>
+        <div><div style="height:80px;border-radius:10px;background:#7fe8ff;border:1px solid var(--border);"></div><div style="font-size:11px;margin-top:6px;"><b>Cyan Soft</b><br><span style="color:var(--muted);">#7fe8ff</span></div></div>
+        <div><div style="height:80px;border-radius:10px;background:#163d66;"></div><div style="font-size:11px;margin-top:6px;"><b>Navy 3</b><br><span style="color:var(--muted);">#163d66</span></div></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Cancel Modal -->
+<div class="modal-backdrop" id="cancelModal">
+  <div class="modal">
+    <h3>Cancel Appointment</h3>
+    <p>This action will mark the appointment as <b>Cancelled</b> and free up the timeslot. Cancellation remarks are required.</p>
+    <div class="form-group">
+      <label>Cancellation Remarks</label>
+      <textarea rows="3" placeholder="e.g. Resident requested cancellation due to travel..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <div class="html-btn-wrap" style="width:100%;">
+        <div class="html-btn ghost" style="width:100%;">Keep Appointment</div>
+        <button class="native-overlay" onclick="closeModal('cancelModal')"></button>
+      </div>
+      <div class="html-btn-wrap" style="width:100%;">
+        <div class="html-btn danger" style="width:100%;">Confirm Cancellation</div>
+        <button class="native-overlay" onclick="confirmCancel()"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><span style="color:var(--cyan);">✓</span> <span id="toastMsg">Success</span></div>
+
+<script>
+/* ============ DATA ============ */
+const officers = [
+  {name:'Lim Wei',initials:'LW',status:'on'},
+  {name:'Tan Mei Ling',initials:'TM',status:'on'},
+  {name:'Rajesh Kumar',initials:'RK',status:'on'},
+  {name:'Siti Aminah',initials:'SA',status:'on'},
+  {name:'Ahmad Faizal',initials:'AF',status:'on'},
+  {name:'Chen Jian',initials:'CJ',status:'al'},
+  {name:'Priya Nair',initials:'PN',status:'ml'}
+];
+
+const reasons = {
+  'Joint Inspection with Daikin':{tag:'tag-joint',label:'Joint Inspection'},
+  'Joint Inspection with Interior Designer':{tag:'tag-joint',label:'ID Inspection'},
+  'Joint Inspection with Others':{tag:'tag-other',label:'Joint Inspection'},
+  'Quality Inspection':{tag:'tag-quality',label:'Quality'},
+  'Assessment':{tag:'tag-assess',label:'Assessment'},
+  'Emergency':{tag:'tag-emergency',label:'Emergency'},
+  'Others':{tag:'tag-other',label:'Other'}
+};
+
+let appointments = [
+  {id:1,time:'09:30',resident:'David Wong',blk:'148A',unit:'12-345',officer:'Lim Wei',reason:'Joint Inspection with Daikin',status:'Scheduled'},
+  {id:2,time:'10:30',resident:'Sarah Tan',blk:'125B',unit:'08-211',officer:'Tan Mei Ling',reason:'Quality Inspection',status:'Scheduled'},
+  {id:3,time:'11:30',resident:'Ravi Chandran',blk:'162C',unit:'15-502',officer:'Lim Wei',reason:'Assessment',status:'Scheduled'},
+  {id:4,time:'13:30',resident:'Nurul Aisyah',blk:'134A',unit:'04-128',officer:'Rajesh Kumar',reason:'Joint Inspection with Interior Designer',status:'Scheduled'},
+  {id:5,time:'14:30',resident:'Michael Lee',blk:'156B',unit:'20-677',officer:'Siti Aminah',reason:'Emergency',status:'Scheduled'},
+  {id:6,time:'15:30',resident:'Grace Lim',blk:'141C',unit:'11-402',officer:'Ahmad Faizal',reason:'Quality Inspection',status:'Scheduled'},
+  {id:7,time:'16:30',resident:'Aisha Rahman',blk:'158A',unit:'06-189',officer:'Lim Wei',reason:'Joint Inspection with Others',status:'Scheduled'}
+];
+
+const leaveBlocks = [
+  {officer:'Chen Jian',date:'09 Jul 2026',type:'Annual Leave',remarks:'Family event'},
+  {officer:'Priya Nair',date:'09 Jul 2026',type:'Medical Leave',remarks:'MC 1 day'},
+  {officer:'Rajesh Kumar',date:'11 Jul 2026',type:'Annual Leave',remarks:'Personal'},
+];
+
+const bookedSlots = ['10:30','14:30']; // for demo
+
+/* ============ MOBILE MENU ============ */
+function toggleMenu(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('show');
+}
+
+/* ============ NAV ============ */
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    item.classList.add('active');
+    const view = item.dataset.view;
+    document.getElementById('view-'+view).classList.add('active');
+    const titles = {
+      dashboard:['Daily Dashboard','Thursday, 09 July 2026 · Control center for all CCS appointments'],
+      booking:['New Booking','Schedule a site visit for a Tengah CCS resident'],
+      manage:['Manage Bookings','Reschedule, cancel or review existing appointments'],
+      team:['Team & Leave Management','Officer roster and availability blocks'],
+      ui:['UI Components','HTML Overlay Technique & SP Group brand palette']
+    };
+    document.getElementById('pageTitle').textContent = titles[view][0];
+    document.getElementById('pageSubtitle').textContent = titles[view][1];
+    
+    // Close mobile menu
+    if(window.innerWidth <= 768){
+      toggleMenu();
+    }
+  });
+});
+
+/* ============ CALENDAR ============ */
+function buildCalendar(){
+  const grid = document.getElementById('calGrid');
+  const days = ['S','M','T','W','T','F','S'];
+  grid.innerHTML = days.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  // July 2026 starts on Wednesday. Show 5 weeks.
+  const firstDay = 3; // Wed (0=Sun)
+  const daysInMonth = 31;
+  const prevDays = 30; // June
+  const apptDays = [2,5,7,9,10,12,14,16,18,21,23,25,28,30];
+  for(let i=firstDay-1;i>=0;i--){
+    grid.innerHTML += `<div class="cal-day other">${prevDays-i}</div>`;
+  }
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday = d===9;
+    const isSel = d===9;
+    const hasAppt = apptDays.includes(d);
+    grid.innerHTML += `<div class="cal-day ${isToday?'today':''} ${isSel?'selected':''} ${hasAppt?'has-appt':''}" data-day="${d}">${d}</div>`;
+  }
+  const remaining = 42 - (firstDay + daysInMonth);
+  for(let d=1;d<=remaining;d++){
+    grid.innerHTML += `<div class="cal-day other">${d}</div>`;
+  }
+  grid.querySelectorAll('.cal-day:not(.other)').forEach(el=>{
+    el.addEventListener('click',()=>{
+      grid.querySelectorAll('.cal-day').forEach(c=>c.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('selectedDateBadge').textContent = el.dataset.day+' Jul 2026';
+    });
+  });
+}
+
+/* ============ TIMELINE ============ */
+function buildTimeline(){
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = appointments.map(a=>{
+    const r = reasons[a.reason] || {tag:'tag-other',label:a.reason};
+    return `<div class="appt">
+      <div class="appt-time">${a.time} — ${addHour(a.time)}</div>
+      <div class="appt-title">${a.resident}</div>
+      <div class="appt-meta">
+        <span>📍 Blk ${a.blk}, #${a.unit}</span>
+        <span>👤 ${a.officer}</span>
+      </div>
+      <span class="appt-tag ${r.tag}">${r.label}</span>
+    </div>`;
+  }).join('');
+}
+function addHour(t){const [h,m]=t.split(':').map(Number);return String(h+1).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+
+/* ============ MOVEMENTS ============ */
+function buildMovements(){
+  const mv = document.getElementById('movements');
+  mv.innerHTML = officers.map(o=>{
+    const map = {on:['status-on','On Duty'],al:['status-al','Annual Leave'],ml:['status-ml','Medical Leave']};
+    const [cls,lbl] = map[o.status];
+    return `<div class="movement">
+      <div class="avatar">${o.initials}</div>
+      <div class="movement-info"><b>${o.name}</b><span>CCS Officer</span></div>
+      <span class="status-pill ${cls}">${lbl}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ============ TIMESLOT GRID ============ */
+const allSlots = ['09:30','10:30','11:30','12:30','13:30','14:30','15:30','16:30','17:30','18:30'];
+let selectedSlot = null;
+
+function buildSlots(){
+  const grid = document.getElementById('slotGrid');
+  const reason = document.getElementById('bkReason').value;
+  const isEmergency = reason === 'Emergency';
+  grid.innerHTML = allSlots.map(s=>{
+    const isLunch = s==='12:30';
+    const isBooked = bookedSlots.includes(s);
+    const isEmergencySlot = s==='17:30' || s==='18:30';
+    let cls = 'slot';
+    let label = '';
+    if(isLunch){cls+=' disabled';label='Lunch Break';}
+    else if(isBooked){cls+=' booked';label='Booked';}
+    else if(isEmergencySlot && !isEmergency){cls+=' disabled';label='Emergency Only';}
+    else if(isEmergencySlot){cls+=' emergency';}
+    if(selectedSlot===s && !isLunch && !isBooked && (isEmergency || !isEmergencySlot)) cls = cls.replace('disabled','').replace('booked','') + ' selected';
+    return `<div class="${cls}" data-slot="${s}">${s}<div class="slot-label">${label}</div></div>`;
+  }).join('');
+  grid.querySelectorAll('.slot:not(.disabled):not(.booked)').forEach(el=>{
+    el.addEventListener('click',()=>{
+      selectedSlot = el.dataset.slot;
+      buildSlots();
+      document.getElementById('sumTime').textContent = selectedSlot+' — '+addHour(selectedSlot);
+    });
+  });
+}
+
+document.getElementById('bkReason').addEventListener('change',e=>{
+  document.getElementById('remarksWrap').style.display = e.target.value==='Others' ? 'flex':'none';
+  buildSlots();
+  document.getElementById('sumReason').textContent = e.target.value;
+});
+document.getElementById('bkOfficer').addEventListener('change',e=>{
+  document.getElementById('sumOfficer').textContent = e.target.value;
+});
+document.getElementById('bkDate').addEventListener('change',e=>{
+  const d = new Date(e.target.value);
+  document.getElementById('sumDate').textContent = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+});
+
+/* ============ MANAGE ============ */
+function buildManageList(){
+  const list = document.getElementById('manageList');
+  list.innerHTML = appointments.map(a=>{
+    const r = reasons[a.reason] || {tag:'tag-other',label:a.reason};
+    return `<div class="appt-card" data-id="${a.id}">
+      <div class="time-block"><b>${a.time}</b><span>${addHour(a.time)}</span></div>
+      <div style="flex:1;">
+        <div style="font-weight:600;color:var(--navy);font-size:14px;">${a.resident}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Blk ${a.blk} · #${a.unit} · ${a.officer}</div>
+        <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span class="appt-tag ${r.tag}">${r.label}</span>
+          <span class="status-pill status-on">${a.status}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('manageCount').textContent = appointments.length+' records';
+  list.querySelectorAll('.appt-card').forEach(c=>{
+    c.addEventListener('click',()=>{
+      list.querySelectorAll('.appt-card').forEach(x=>x.classList.remove('selected'));
+      c.classList.add('selected');
+      openSidePanel(appointments.find(a=>a.id==c.dataset.id));
+    });
+  });
+}
+
+function openSidePanel(a){
+  const r = reasons[a.reason] || {tag:'tag-other',label:a.reason};
+  document.getElementById('sidePanel').innerHTML = `
+    <div class="card-title">Appointment Details</div>
+    <div style="text-align:center;padding:16px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;color:var(--aqua);font-weight:700;letter-spacing:1px;">${a.time} — ${addHour(a.time)}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--navy);margin-top:4px;">${a.resident}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">Blk ${a.blk} · #${a.unit}</div>
+      <span class="appt-tag ${r.tag}" style="margin-top:10px;">${r.label}</span>
+    </div>
+    <div style="padding:16px 0;font-size:13px;line-height:2;">
+      <div><b style="color:var(--navy);">Officer:</b> ${a.officer}</div>
+      <div><b style="color:var(--navy);">Reason:</b> ${a.reason}</div>
+      <div><b style="color:var(--navy);">Status:</b> <span class="status-pill status-on">${a.status}</span></div>
+      <div><b style="color:var(--navy);">Booking ID:</b> #CCS-${String(a.id).padStart(4,'0')}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="html-btn-wrap" style="width:100%;">
+        <div class="html-btn" style="width:100%;justify-content:center;">↻ Edit / Reschedule</div>
+        <button class="native-overlay" onclick="showToast('Loaded into booking form for rescheduling')"></button>
+      </div>
+      <div class="html-btn-wrap" style="width:100%;">
+        <div class="html-btn danger" style="width:100%;justify-content:center;">✕ Cancel Appointment</div>
+        <button class="native-overlay" onclick="openCancelModal()"></button>
+      </div>
+      <div class="html-btn-wrap" style="width:100%;">
+        <div class="html-btn ghost" style="width:100%;justify-content:center;">Mark as Completed</div>
+        <button class="native-overlay" onclick="showToast('Status updated to Completed')"></button>
+      </div>
+    </div>`;
+}
+
+/* ============ TEAM ============ */
+function buildTeam(){
+  document.getElementById('teamGrid').innerHTML = officers.map(o=>{
+    const map = {on:['status-on','Active'],al:['status-al','On Leave'],ml:['status-ml','On MC']};
+    const [cls,lbl] = map[o.status];
+    return `<div class="team-card">
+      <div class="avatar">${o.initials}</div>
+      <div class="team-card-info"><b>${o.name}</b><span>CCS Field Officer</span></div>
+      <span class="status-pill ${cls}">${lbl}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('leaveTable').innerHTML = leaveBlocks.map(l=>`
+    <tr>
+      <td><b>${l.officer}</b></td>
+      <td>${l.date}</td>
+      <td><span class="status-pill ${l.type==='Medical Leave'?'status-ml':'status-al'}">${l.type}</span></td>
+      <td style="color:var(--muted);">${l.remarks}</td>
+      <td><a style="color:var(--aqua);font-size:12px;cursor:pointer;">Edit</a></td>
+    </tr>`).join('');
+}
+
+/* ============ ACTIONS ============ */
+function submitBooking(){
+  if(!selectedSlot){showToast('Please select a timeslot');return;}
+  showToast('Booking confirmed · Written to SharePoint Appointments list');
+}
+function openCancelModal(){document.getElementById('cancelModal').classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function confirmCancel(){
+  closeModal('cancelModal');
+  showToast('Appointment cancelled · Timeslot released');
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ============ INIT ============ */
+buildCalendar();
+buildTimeline();
+buildMovements();
+buildSlots();
+buildManageList();
+buildTeam();
+</script>
+</body>
+</html>
