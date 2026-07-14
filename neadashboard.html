@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SG Live Weather Dashboard</title>
+    <title>SG Live Weather Dashboard - West Region Focus</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -94,37 +94,24 @@
             </div>
         </div>
 
-        <!-- Real-Time Sensor Readings (NEW) -->
+        <!-- Western Region Focus Section (NEW) -->
         <div>
-            <h2 class="text-xl font-semibold mb-4 text-slate-300 flex items-center gap-2">
-                <i class="fa-solid fa-satellite-dish text-slate-500"></i>
-                Real-Time Sensor Readings
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl flex justify-between items-start hover:border-slate-700 transition-colors">
-                    <div>
-                        <p class="text-sm font-medium text-slate-400">Avg. Temperature</p>
-                        <h3 id="rt-temp" class="text-2xl font-bold mt-2 text-white">--</h3>
-                        <p id="rt-temp-time" class="text-xs text-slate-500 mt-1">Updated: --</p>
-                    </div>
-                    <div class="text-3xl text-rose-400"><i class="fa-solid fa-temperature-three-quarters"></i></div>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl flex justify-between items-start hover:border-slate-700 transition-colors">
-                    <div>
-                        <p class="text-sm font-medium text-slate-400">Avg. Humidity</p>
-                        <h3 id="rt-humidity" class="text-2xl font-bold mt-2 text-white">--</h3>
-                        <p id="rt-humidity-time" class="text-xs text-slate-500 mt-1">Updated: --</p>
-                    </div>
-                    <div class="text-3xl text-sky-400"><i class="fa-solid fa-droplet"></i></div>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl flex justify-between items-start hover:border-slate-700 transition-colors">
-                    <div>
-                        <p class="text-sm font-medium text-slate-400">Max Rainfall (5-min)</p>
-                        <h3 id="rt-rainfall" class="text-2xl font-bold mt-2 text-white">--</h3>
-                        <p id="rt-rainfall-status" class="text-xs text-slate-500 mt-1">Status: --</p>
-                    </div>
-                    <div class="text-3xl text-indigo-400"><i class="fa-solid fa-cloud-rain"></i></div>
-                </div>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                <h2 class="text-xl font-semibold text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-location-crosshairs text-sky-400"></i>
+                    Western Region Focus
+                    <span class="text-xs font-normal text-slate-500">Tengah → Choa Chu Kang</span>
+                </h2>
+                <span id="west-station-count" class="text-xs text-slate-500 bg-slate-800/60 px-3 py-1 rounded-full">
+                    Loading stations...
+                </span>
+            </div>
+            <div id="west-stations-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Station cards injected here -->
+            </div>
+            <div id="west-stations-empty" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-500">
+                <i class="fa-solid fa-satellite-dish text-3xl mb-2 opacity-50"></i>
+                <p>No weather stations detected in the Western region.</p>
             </div>
         </div>
 
@@ -135,7 +122,7 @@
                 Regional Split-Day Forecast
             </h2>
             <div id="periods-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Cards will be injected here by JavaScript -->
+                <!-- Cards injected here -->
             </div>
         </div>
 
@@ -180,18 +167,37 @@
         let nextRefreshTime = null;
         const REFRESH_STORAGE_KEY = 'sg_weather_refresh_interval';
 
-        // Helper: Calculate average of station readings
-        function calculateAverage(readings) {
-            if (!readings || readings.length === 0) return null;
-            const sum = readings.reduce((acc, curr) => acc + (curr.value || 0), 0);
-            return (sum / readings.length).toFixed(1);
+        // User's focus area: center point between Tengah and 91 Choa Chu Kang Road
+        const USER_FOCUS = { lat: 1.382, lon: 103.743 };
+
+        // Western region bounding box (covers Tengah, CCK, Bukit Batok, Jurong, Clementi, Nanyang)
+        const WEST_REGION_BOUNDS = {
+            minLat: 1.30,
+            maxLat: 1.41,
+            minLon: 103.60,
+            maxLon: 103.78
+        };
+
+        // Haversine distance in km
+        function getDistanceKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
         }
 
-        // Helper: Calculate max rainfall across stations
-        function calculateMaxRainfall(readings) {
-            if (!readings || readings.length === 0) return "0.0";
-            const max = Math.max(...readings.map(r => r.value || 0));
-            return max.toFixed(1);
+        function isWestRegionStation(station) {
+            if (!station.location) return false;
+            const lat = station.location.latitude;
+            const lon = station.location.longitude;
+            return lat >= WEST_REGION_BOUNDS.minLat && 
+                   lat <= WEST_REGION_BOUNDS.maxLat && 
+                   lon >= WEST_REGION_BOUNDS.minLon && 
+                   lon <= WEST_REGION_BOUNDS.maxLon;
         }
 
         function getWeatherIcon(text) {
@@ -202,14 +208,11 @@
             return '<i class="fa-solid fa-sun text-amber-400"></i>';
         }
 
-        function buildDashboard(payload, realTimeData, isMock = false) {
-            // Capture scroll position before update
+        function buildDashboard(payload, isMock = false) {
             const scrollY = window.scrollY;
-            
             const record = payload.data.records[0];
             const general = record.general;
 
-            // Update status banner
             const statusBadge = document.getElementById('status-badge');
             if (isMock) {
                 statusBadge.textContent = "Offline (Cached Data)";
@@ -219,7 +222,6 @@
                 statusBadge.className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider";
             }
 
-            // Fill header & top summary metric fields
             document.getElementById('valid-period').textContent = `Valid: ${general.validPeriod.text}`;
             document.getElementById('updated-time').textContent = `Updated: ${new Date(record.updatedTimestamp).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}`;
             
@@ -230,49 +232,15 @@
             document.getElementById('m-wind').textContent = `${general.wind.speed.low} - ${general.wind.speed.high} km/h`;
             document.getElementById('m-wind-dir').textContent = `Direction: ${general.wind.direction}`;
 
-            // Update Real-Time Readings
-            if (realTimeData) {
-                if (realTimeData.temp !== null && realTimeData.timestamp) {
-                    document.getElementById('rt-temp').textContent = `${realTimeData.temp}°C`;
-                    document.getElementById('rt-temp-time').textContent = `As of ${new Date(realTimeData.timestamp).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}`;
-                }
-                if (realTimeData.humidity !== null && realTimeData.timestamp) {
-                    document.getElementById('rt-humidity').textContent = `${realTimeData.humidity}%`;
-                    document.getElementById('rt-humidity-time').textContent = `As of ${new Date(realTimeData.timestamp).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}`;
-                }
-                if (realTimeData.rainfall !== null) {
-                    const rainVal = parseFloat(realTimeData.rainfall);
-                    document.getElementById('rt-rainfall').textContent = `${rainVal} mm`;
-                    let rainStatus = "No Rain";
-                    let rainColor = "text-slate-500";
-                    
-                    if (rainVal > 0) {
-                        if (rainVal > 10) {
-                            rainStatus = "Heavy Rain";
-                            rainColor = "text-blue-400";
-                        } else {
-                            rainStatus = "Light Rain";
-                            rainColor = "text-sky-400";
-                        }
-                    }
-                    
-                    const statusEl = document.getElementById('rt-rainfall-status');
-                    statusEl.textContent = `Status: ${rainStatus}`;
-                    statusEl.className = `text-xs mt-1 font-medium ${rainColor}`;
-                }
-            }
-
             // Build Regional Split Cards
             const gridContainer = document.getElementById('periods-grid');
             gridContainer.innerHTML = '';
 
             record.periods.forEach(p => {
                 let regionRows = '';
-                
                 Object.entries(p.regions).forEach(([regionName, details]) => {
                     const isRain = details.text.toLowerCase().includes('thunder') || details.text.toLowerCase().includes('shower');
                     const bgHighlight = isRain ? 'bg-amber-500/10 border-amber-500/30' : 'bg-slate-950/60 border-slate-800/40';
-                    
                     regionRows += `
                         <div class="flex justify-between items-center border ${bgHighlight} p-2.5 rounded-lg transition-colors hover:bg-slate-800/50">
                             <span class="capitalize text-sm font-medium text-slate-300 flex items-center gap-2">
@@ -284,116 +252,209 @@
                         </div>
                     `;
                 });
-
-                const cardHtml = `
+                gridContainer.innerHTML += `
                     <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow">
                         <div class="bg-slate-800/40 px-4 py-3 border-b border-slate-800">
                             <h3 class="text-sm font-bold text-sky-400">${p.timePeriod.text}</h3>
                         </div>
-                        <div class="p-4 space-y-2.5">
-                            ${regionRows}
-                        </div>
+                        <div class="p-4 space-y-2.5">${regionRows}</div>
                     </div>
                 `;
-                gridContainer.innerHTML += cardHtml;
             });
 
-            // Restore scroll position after DOM update
             window.scrollTo(0, scrollY);
         }
 
-        // Show/hide refreshing indicator
-        function setRefreshing(isRefreshing) {
-            const indicator = document.getElementById('refreshing-indicator');
-            if (isRefreshing) {
-                indicator.classList.remove('hidden');
-            } else {
-                indicator.classList.add('hidden');
+        // Build Western Region station cards
+        function buildWestRegionCards(stationDataArray) {
+            const grid = document.getElementById('west-stations-grid');
+            const emptyMsg = document.getElementById('west-stations-empty');
+            const countBadge = document.getElementById('west-station-count');
+
+            grid.innerHTML = '';
+
+            if (!stationDataArray || stationDataArray.length === 0) {
+                grid.classList.add('hidden');
+                emptyMsg.classList.remove('hidden');
+                countBadge.textContent = '0 stations in region';
+                return;
             }
+
+            grid.classList.remove('hidden');
+            emptyMsg.classList.add('hidden');
+            countBadge.textContent = `${stationDataArray.length} station${stationDataArray.length > 1 ? 's' : ''} in region`;
+
+            // Sort by distance to user focus, then take top stations
+            stationDataArray.sort((a, b) => a.distance - b.distance);
+
+            stationDataArray.forEach((station, index) => {
+                const isFocusStation = index < 3; // Highlight top 3 closest
+                const hasRain = station.rainfall !== null && station.rainfall > 0;
+                
+                const borderColor = hasRain 
+                    ? 'border-blue-500/50 shadow-blue-500/10' 
+                    : (isFocusStation ? 'border-sky-500/40' : 'border-slate-800');
+                
+                const focusBadge = isFocusStation 
+                    ? '<span class="bg-sky-500/20 text-sky-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Nearest</span>' 
+                    : '';
+                
+                const rainBadge = hasRain 
+                    ? `<span class="bg-blue-500/20 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Raining</span>` 
+                    : '';
+
+                const tempDisplay = station.temp !== null ? `${station.temp.toFixed(1)}°C` : '--';
+                const humidityDisplay = station.humidity !== null ? `${station.humidity.toFixed(0)}%` : '--';
+                const rainfallDisplay = station.rainfall !== null ? `${station.rainfall.toFixed(1)} mm` : '--';
+                
+                const distanceDisplay = station.distance < 1 
+                    ? `${Math.round(station.distance * 1000)} m away` 
+                    : `${station.distance.toFixed(1)} km away`;
+
+                const timeStr = station.timestamp 
+                    ? new Date(station.timestamp).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })
+                    : '--';
+
+                grid.innerHTML += `
+                    <div class="bg-slate-900 border ${borderColor} rounded-xl p-5 hover:bg-slate-900/80 transition-all ${hasRain ? 'shadow-lg' : ''}">
+                        <div class="flex items-start justify-between mb-4 gap-2">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-bold text-white truncate">${station.name}</h3>
+                                    ${focusBadge}
+                                    ${rainBadge}
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-route text-[10px]"></i>
+                                    ${distanceDisplay}
+                                </p>
+                            </div>
+                            <div class="text-slate-600 text-xs flex-shrink-0">
+                                <i class="fa-solid fa-satellite-dish"></i>
+                                <span class="ml-1">${station.id}</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="bg-slate-950/60 rounded-lg p-2.5 text-center">
+                                <i class="fa-solid fa-temperature-three-quarters text-rose-400 text-sm mb-1"></i>
+                                <p class="text-[10px] text-slate-500 uppercase tracking-wider">Temp</p>
+                                <p class="text-sm font-bold text-white mt-0.5">${tempDisplay}</p>
+                            </div>
+                            <div class="bg-slate-950/60 rounded-lg p-2.5 text-center">
+                                <i class="fa-solid fa-droplet text-sky-400 text-sm mb-1"></i>
+                                <p class="text-[10px] text-slate-500 uppercase tracking-wider">Humidity</p>
+                                <p class="text-sm font-bold text-white mt-0.5">${humidityDisplay}</p>
+                            </div>
+                            <div class="bg-slate-950/60 rounded-lg p-2.5 text-center ${hasRain ? 'bg-blue-500/10' : ''}">
+                                <i class="fa-solid fa-cloud-rain text-indigo-400 text-sm mb-1"></i>
+                                <p class="text-[10px] text-slate-500 uppercase tracking-wider">Rain (5m)</p>
+                                <p class="text-sm font-bold text-white mt-0.5">${rainfallDisplay}</p>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-600 mt-3 text-right">
+                            <i class="fa-regular fa-clock"></i> ${timeStr}
+                        </p>
+                    </div>
+                `;
+            });
         }
 
-        // Fetch data and update dashboard
+        function setRefreshing(isRefreshing) {
+            const indicator = document.getElementById('refreshing-indicator');
+            if (isRefreshing) indicator.classList.remove('hidden');
+            else indicator.classList.add('hidden');
+        }
+
         async function refreshData() {
             setRefreshing(true);
             try {
-                // 1. Fetch 24-hr forecast
-                const forecastResponse = await fetch('https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast', {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' }
-                });
+                const [forecastRes, tempRes, humidityRes, rainfallRes] = await Promise.all([
+                    fetch('https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast', { headers: { 'Accept': 'application/json' } }),
+                    fetch('https://api-open.data.gov.sg/v2/real-time/api/air-temperature', { headers: { 'Accept': 'application/json' } }),
+                    fetch('https://api-open.data.gov.sg/v2/real-time/api/relative-humidity', { headers: { 'Accept': 'application/json' } }),
+                    fetch('https://api-open.data.gov.sg/v2/real-time/api/rainfall', { headers: { 'Accept': 'application/json' } })
+                ]);
 
-                // 2. Fetch real-time data concurrently
-                let realTimeData = { temp: null, humidity: null, rainfall: null, timestamp: null };
-                
+                if (!forecastRes.ok) throw new Error("Forecast API error");
+                const forecastData = await forecastRes.json();
+
+                // Process real-time data
+                let westStationData = [];
                 try {
-                    const [tempResponse, humidityResponse, rainfallResponse] = await Promise.all([
-                        fetch('https://api-open.data.gov.sg/v2/real-time/api/air-temperature', { headers: { 'Accept': 'application/json' } }),
-                        fetch('https://api-open.data.gov.sg/v2/real-time/api/relative-humidity', { headers: { 'Accept': 'application/json' } }),
-                        fetch('https://api-open.data.gov.sg/v2/real-time/api/rainfall', { headers: { 'Accept': 'application/json' } })
-                    ]);
+                    if (tempRes.ok && humidityRes.ok && rainfallRes.ok) {
+                        const tempData = await tempRes.json();
+                        const humidityData = await humidityRes.json();
+                        const rainfallData = await rainfallRes.json();
 
-                    if (tempResponse.ok) {
-                        const tempData = await tempResponse.json();
-                        const latestReading = tempData.data.readings[0];
-                        realTimeData.temp = calculateAverage(latestReading.data);
-                        realTimeData.timestamp = latestReading.timestamp;
-                    }
-                    
-                    if (humidityResponse.ok) {
-                        const humidityData = await humidityResponse.json();
-                        const latestReading = humidityData.data.readings[0];
-                        realTimeData.humidity = calculateAverage(latestReading.data);
-                    }
-                    
-                    if (rainfallResponse.ok) {
-                        const rainfallData = await rainfallResponse.json();
-                        const latestReading = rainfallData.data.readings[0];
-                        realTimeData.rainfall = calculateMaxRainfall(latestReading.data);
+                        // Build station info map from temperature API (all 3 share same stations)
+                        const stationInfo = new Map(tempData.data.stations.map(s => [s.id, s]));
+
+                        // Get latest readings
+                        const latestTemp = tempData.data.readings[0];
+                        const latestHumidity = humidityData.data.readings[0];
+                        const latestRainfall = rainfallData.data.readings[0];
+
+                        // Build reading lookup maps
+                        const tempReadings = new Map(latestTemp.data.map(r => [r.stationId, r.value]));
+                        const humidityReadings = new Map(latestHumidity.data.map(r => [r.stationId, r.value]));
+                        const rainfallReadings = new Map(latestRainfall.data.map(r => [r.stationId, r.value]));
+
+                        // Filter West region stations and build data
+                        westStationData = tempData.data.stations
+                            .filter(isWestRegionStation)
+                            .map(station => {
+                                const distance = station.location 
+                                    ? getDistanceKm(USER_FOCUS.lat, USER_FOCUS.lon, station.location.latitude, station.location.longitude)
+                                    : 999;
+                                return {
+                                    id: station.id,
+                                    name: station.name,
+                                    lat: station.location?.latitude,
+                                    lon: station.location?.longitude,
+                                    distance: distance,
+                                    temp: tempReadings.get(station.id) ?? null,
+                                    humidity: humidityReadings.get(station.id) ?? null,
+                                    rainfall: rainfallReadings.get(station.id) ?? null,
+                                    timestamp: latestTemp.timestamp
+                                };
+                            });
                     }
                 } catch (rtErr) {
-                    console.warn("Real-time API fetch failed, continuing with forecast data only", rtErr);
+                    console.warn("Real-time API processing failed", rtErr);
                 }
 
-                if (!forecastResponse.ok) throw new Error("HTTP error parsing forecast dataset");
-                const forecastData = await forecastResponse.json();
-                
-                buildDashboard(forecastData, realTimeData, false);
+                buildDashboard(forecastData, false);
+                buildWestRegionCards(westStationData);
             } catch (err) {
-                console.warn("API Error / CORS policy block encountered. Loading fallback payload data.", err);
-                buildDashboard(FALLBACK_DATA, { 
-                    temp: 30.5, 
-                    humidity: 72.0, 
-                    rainfall: 0.0, 
-                    timestamp: new Date().toISOString() 
-                }, true);
+                console.warn("API Error. Loading fallback.", err);
+                buildDashboard(FALLBACK_DATA, true);
+                // Fallback station data for demo
+                buildWestRegionCards([
+                    { id: 'S121', name: 'Old Choa Chu Kang Road', distance: 0.8, temp: 30.5, humidity: 72, rainfall: 0.0, timestamp: new Date().toISOString() },
+                    { id: 'S50', name: 'Jurong West Street 41', distance: 3.2, temp: 30.2, humidity: 74, rainfall: 0.0, timestamp: new Date().toISOString() },
+                    { id: 'S115', name: 'Nanyang Avenue', distance: 4.5, temp: 29.8, humidity: 76, rainfall: 1.2, timestamp: new Date().toISOString() }
+                ]);
             } finally {
                 setRefreshing(false);
-                // Reset countdown after refresh
                 resetCountdown();
             }
         }
 
-        // Update countdown display every second
         function updateCountdown() {
             if (!nextRefreshTime) {
                 document.getElementById('countdown-text').textContent = 'Auto-refresh paused';
                 return;
             }
-            
-            const now = Date.now();
-            const secondsLeft = Math.max(0, Math.floor((nextRefreshTime - now) / 1000));
-            
+            const secondsLeft = Math.max(0, Math.floor((nextRefreshTime - Date.now()) / 1000));
             if (secondsLeft === 0) {
                 document.getElementById('countdown-text').textContent = 'Refreshing now...';
             } else {
                 const mins = Math.floor(secondsLeft / 60);
                 const secs = secondsLeft % 60;
-                const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-                document.getElementById('countdown-text').textContent = `Next refresh in: ${timeStr}`;
+                document.getElementById('countdown-text').textContent = `Next refresh in: ${mins > 0 ? `${mins}m ${secs}s` : `${secs}s`}`;
             }
         }
 
-        // Reset countdown timer
         function resetCountdown() {
             const intervalMinutes = parseInt(document.getElementById('refresh-interval').value);
             if (intervalMinutes === 0) {
@@ -405,19 +466,10 @@
             updateCountdown();
         }
 
-        // Start auto-refresh interval
         function startAutoRefresh() {
             const intervalMinutes = parseInt(document.getElementById('refresh-interval').value);
-            
-            // Clear existing intervals
-            if (refreshIntervalId) {
-                clearInterval(refreshIntervalId);
-                refreshIntervalId = null;
-            }
-            if (countdownIntervalId) {
-                clearInterval(countdownIntervalId);
-                countdownIntervalId = null;
-            }
+            if (refreshIntervalId) clearInterval(refreshIntervalId);
+            if (countdownIntervalId) clearInterval(countdownIntervalId);
 
             if (intervalMinutes === 0) {
                 nextRefreshTime = null;
@@ -425,45 +477,28 @@
                 return;
             }
 
-            // Set next refresh time
             nextRefreshTime = Date.now() + (intervalMinutes * 60 * 1000);
-            
-            // Start refresh interval
-            refreshIntervalId = setInterval(() => {
-                refreshData();
-            }, intervalMinutes * 60 * 1000);
-
-            // Start countdown interval (updates every second)
+            refreshIntervalId = setInterval(refreshData, intervalMinutes * 60 * 1000);
             countdownIntervalId = setInterval(updateCountdown, 1000);
-            
             updateCountdown();
         }
 
-        // Save user preference to localStorage
         function savePreference() {
-            const interval = document.getElementById('refresh-interval').value;
-            localStorage.setItem(REFRESH_STORAGE_KEY, interval);
+            localStorage.setItem(REFRESH_STORAGE_KEY, document.getElementById('refresh-interval').value);
         }
 
-        // Load user preference from localStorage
         function loadPreference() {
             const saved = localStorage.getItem(REFRESH_STORAGE_KEY);
-            if (saved !== null) {
-                document.getElementById('refresh-interval').value = saved;
-            }
+            if (saved !== null) document.getElementById('refresh-interval').value = saved;
         }
 
-        // Event listeners
         document.getElementById('refresh-interval').addEventListener('change', () => {
             savePreference();
             startAutoRefresh();
         });
 
-        document.getElementById('manual-refresh').addEventListener('click', () => {
-            refreshData();
-        });
+        document.getElementById('manual-refresh').addEventListener('click', refreshData);
 
-        // Initial load
         async function initDashboard() {
             loadPreference();
             await refreshData();
