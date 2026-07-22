@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Selector with Memory</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        /* Top control bar */
+        .controls {
+            padding: 15px;
+            background: rgba(20, 20, 20, 0.95);
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            border-bottom: 1px solid #333;
+            z-index: 10;
+        }
+
+        select {
+            padding: 10px 15px;
+            font-size: 1rem;
+            border-radius: 6px;
+            border: 1px solid #555;
+            background-color: #222;
+            color: #fff;
+            min-width: 300px;
+            max-width: 90%;
+            cursor: pointer;
+            outline: none;
+        }
+
+        select:hover {
+            border-color: #888;
+        }
+
+        /* Video takes up all remaining space */
+        video {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <select id="camera-select">
+            <option value="">Loading cameras...</option>
+        </select>
+    </div>
+
+    <video id="video" autoplay playsinline muted></video>
+
+    <script>
+        const videoElement = document.getElementById('video');
+        const cameraSelect = document.getElementById('camera-select');
+        let currentStream = null;
+
+        async function init() {
+            try {
+                // 1. Request temporary permission to read the names of all cameras
+                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                tempStream.getTracks().forEach(track => track.stop());
+
+                // 2. Get the full list of cameras
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cameras = devices.filter(device => device.kind === 'videoinput');
+
+                // 3. Populate the dropdown menu with all available cameras
+                cameraSelect.innerHTML = '';
+                cameras.forEach(cam => {
+                    const option = document.createElement('option');
+                    option.value = cam.deviceId;
+                    // Give it a readable name, fallback to ID if name is hidden
+                    option.text = cam.label || `Camera (${cam.deviceId.slice(0, 8)}...)`; 
+                    cameraSelect.add(option);
+                });
+
+                // 4. THE MEMORY FEATURE: Check if we saved a camera previously
+                const savedCameraId = localStorage.getItem('selectedCameraId');
+                
+                if (savedCameraId && cameras.some(cam => cam.deviceId === savedCameraId)) {
+                    // If the saved camera is still plugged in, select it in the dropdown
+                    cameraSelect.value = savedCameraId;
+                    console.log("Restored last selected camera:", savedCameraId);
+                } else {
+                    // If no saved camera (or it's unplugged), just use the first one in the list
+                    cameraSelect.selectedIndex = 0;
+                }
+
+                // 5. Start the video feed with the selected camera
+                startCamera(cameraSelect.value);
+
+                // 6. Listen for when the user manually changes the dropdown
+                cameraSelect.addEventListener('change', (e) => {
+                    const newCameraId = e.target.value;
+                    // SAVE the choice to the browser's memory
+                    localStorage.setItem('selectedCameraId', newCameraId); 
+                    startCamera(newCameraId);
+                });
+
+            } catch (error) {
+                console.error("Initialization failed:", error);
+                cameraSelect.innerHTML = '<option value="">Error: Allow camera access to continue</option>';
+            }
+        }
+
+        async function startCamera(deviceId) {
+            // Stop the previous camera feed to prevent memory leaks/multiple active cameras
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                const constraints = {
+                    video: {
+                        deviceId: deviceId ? { exact: deviceId } : undefined,
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                };
+
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = currentStream;
+            } catch (error) {
+                console.error("Failed to start specific camera, trying default:", error);
+                // Fallback if the exact device fails (e.g., unplugged)
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    videoElement.srcObject = currentStream;
+                } catch (e) {
+                    console.error("Fallback also failed:", e);
+                }
+            }
+        }
+
+        // Run everything the moment the page loads
+        init();
+    </script>
+</body>
+</html>
