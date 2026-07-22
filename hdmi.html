@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>External USB Camera Feed</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        video {
+            max-width: 100vw;
+            max-height: 100vh;
+            object-fit: contain;
+        }
+
+        #error-msg {
+            color: #ff4d4d;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: sans-serif;
+            display: none;
+            max-width: 80%;
+        }
+    </style>
+</head>
+<body>
+
+    <video id="video" autoplay playsinline muted></video>
+    <div id="error-msg"></div>
+
+    <script>
+        const videoElement = document.getElementById('video');
+        const errorMsg = document.getElementById('error-msg');
+
+        // List of keywords commonly found in INTERNAL / BUILT-IN camera names
+        const INTERNAL_KEYWORDS = [
+            'integrated', 'built-in', 'builtin', 'facetime', 
+            'internal', 'front', 'ir camera', 'truevision'
+        ];
+
+        async function startExternalCamera() {
+            try {
+                // 1. Browsers hide camera names until permission is granted.
+                // We request temporary access just to reveal the camera names.
+                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                tempStream.getTracks().forEach(track => track.stop()); // Kill it immediately
+
+                // 2. Get the full list of devices with their names revealed
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const allCameras = devices.filter(device => device.kind === 'videoinput');
+
+                if (allCameras.length === 0) {
+                    throw new Error("No cameras detected on this device.");
+                }
+
+                // 3. Filter OUT the internal cameras
+                const externalCameras = allCameras.filter(cam => {
+                    const label = cam.label.toLowerCase();
+                    // If the name does NOT contain any internal keywords, it's external/USB
+                    return !INTERNAL_KEYWORDS.some(keyword => label.includes(keyword));
+                });
+
+                // 4. Select the target camera
+                let targetCamera;
+                if (externalCameras.length > 0) {
+                    targetCamera = externalCameras[0]; // Grab the first USB/External camera
+                    console.log("Success: Targeting External/USB Camera ->", targetCamera.label);
+                } else {
+                    // Fallback: If no external camera is found, use the default (internal)
+                    targetCamera = allCameras[0]; 
+                    console.warn("Warning: No external cameras found. Falling back to default camera ->", targetCamera.label);
+                }
+
+                // 5. Open the final stream immediately using the specific device ID
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        deviceId: { exact: targetCamera.deviceId },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                });
+
+                videoElement.srcObject = stream;
+
+            } catch (error) {
+                console.error("Failed to start external camera:", error);
+                errorMsg.innerText = "Error: " + error.message;
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        // Run immediately when the page loads
+        startExternalCamera();
+    </script>
+</body>
+</html>
