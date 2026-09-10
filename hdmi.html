@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Selector with Memory</title>
+    <title>Camera Selector with Stealth Overlay</title>
     <style>
         body {
             margin: 0;
@@ -17,7 +17,6 @@
             overflow: hidden;
         }
 
-        /* Top control bar */
         .controls {
             padding: 15px;
             background: rgba(20, 20, 20, 0.95);
@@ -36,7 +35,7 @@
             border: 1px solid #555;
             background-color: #222;
             color: #fff;
-            min-width: 300px;
+            min-width: 250px;
             max-width: 90%;
             cursor: pointer;
             outline: none;
@@ -46,13 +45,141 @@
             border-color: #888;
         }
 
-        /* Video takes up all remaining space */
-        video {
+        .video-container {
             flex: 1;
+            position: relative;
+            width: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+
+        video {
             width: 100%;
             height: 100%;
             object-fit: contain;
             background: #000;
+        }
+
+        #overlay-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            display: none;
+            z-index: 5;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #overlay-wrapper.editing {
+            border: 2px dashed rgba(255, 255, 255, 0.6);
+            cursor: move;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        #overlay-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            pointer-events: none; 
+            opacity: 0.85; 
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
+        }
+
+        .resize-handle {
+            display: none;
+            position: absolute;
+            bottom: -8px;
+            right: -8px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border: 2px solid #333;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            z-index: 6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        #overlay-wrapper.editing .resize-handle {
+            display: block;
+        }
+
+        /* Edit Toolbar (Opacity + Done) */
+        .edit-toolbar {
+            display: none;
+            position: absolute;
+            top: -45px;
+            right: 0;
+            background: rgba(20, 20, 20, 0.95);
+            padding: 8px 12px;
+            border-radius: 6px;
+            align-items: center;
+            gap: 10px;
+            z-index: 6;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border: 1px solid #444;
+            backdrop-filter: blur(5px);
+            white-space: nowrap;
+        }
+
+        #overlay-wrapper.editing .edit-toolbar {
+            display: flex;
+        }
+
+        .edit-toolbar label {
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        .edit-toolbar input[type="range"] {
+            width: 80px;
+            cursor: pointer;
+            accent-color: #4CAF50;
+        }
+
+        .done-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            transition: background 0.2s;
+        }
+
+        .done-btn:hover {
+            background: #45a049;
+        }
+
+        .stealth-btn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(2px);
+        }
+
+        .stealth-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.9);
+            transform: scale(1.1);
         }
     </style>
 </head>
@@ -64,64 +191,206 @@
         </select>
     </div>
 
-    <video id="video" autoplay playsinline muted></video>
+    <div class="video-container" id="video-container">
+        <video id="video" autoplay playsinline muted></video>
+        
+        <div id="overlay-wrapper">
+            <img id="overlay-image" src="" alt="Prank Overlay">
+            <div class="resize-handle" id="resize-handle"></div>
+            <div class="edit-toolbar" id="edit-toolbar">
+                <label>Opacity:</label>
+                <input type="range" id="opacity-slider" min="0.05" max="1" step="0.05" value="0.85">
+                <button id="done-edit-btn" class="done-btn">✅ Done</button>
+            </div>
+        </div>
+
+        <button id="stealth-btn" class="stealth-btn" title="Overlay Settings">👻</button>
+        <input type="file" id="overlay-upload" accept="image/*" style="display: none;">
+    </div>
 
     <script>
         const videoElement = document.getElementById('video');
         const cameraSelect = document.getElementById('camera-select');
         let currentStream = null;
 
+        const overlayWrapper = document.getElementById('overlay-wrapper');
+        const overlayImage = document.getElementById('overlay-image');
+        const resizeHandle = document.getElementById('resize-handle');
+        const doneEditBtn = document.getElementById('done-edit-btn');
+        const stealthBtn = document.getElementById('stealth-btn');
+        const overlayUpload = document.getElementById('overlay-upload');
+        const opacitySlider = document.getElementById('opacity-slider');
+        
+        let currentObjectUrl = null;
+        let isEditMode = false;
+        let hasImage = false;
+        let isDragging = false;
+        let isResizing = false;
+        let startX, startY, startLeft, startTop, startWidth;
+
+        function getClientXY(e) {
+            if (e.touches && e.touches.length > 0) {
+                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+            return { x: e.clientX, y: e.clientY };
+        }
+
+        stealthBtn.addEventListener('click', () => {
+            if (!hasImage) {
+                overlayUpload.click();
+            } else {
+                toggleEditMode();
+            }
+        });
+
+        overlayUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+                currentObjectUrl = URL.createObjectURL(file);
+                overlayImage.src = currentObjectUrl;
+                overlayWrapper.style.display = 'block';
+                hasImage = true;
+                
+                isEditMode = true;
+                updateEditModeUI();
+            }
+        });
+
+        opacitySlider.addEventListener('input', (e) => {
+            overlayImage.style.opacity = e.target.value;
+        });
+        
+        // Prevent dragging when interacting with the slider or done button
+        function isInteractiveElement(target) {
+            return target === resizeHandle || target.closest('.edit-toolbar');
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            updateEditModeUI();
+        }
+
+        function updateEditModeUI() {
+            if (isEditMode) {
+                overlayWrapper.classList.add('editing');
+                stealthBtn.innerHTML = '🔓';
+                stealthBtn.title = 'Lock Overlay in Place';
+            } else {
+                overlayWrapper.classList.remove('editing');
+                stealthBtn.innerHTML = '✏️';
+                stealthBtn.title = 'Edit Overlay Position/Size';
+            }
+        }
+
+        doneEditBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleEditMode();
+        });
+
+        overlayWrapper.addEventListener('mousedown', startDrag);
+        overlayWrapper.addEventListener('touchstart', startDrag, { passive: false });
+
+        function startDrag(e) {
+            if (!isEditMode || isInteractiveElement(e.target)) return;
+            isDragging = true;
+            
+            const pos = getClientXY(e);
+            startX = pos.x;
+            startY = pos.y;
+            
+            const rect = overlayWrapper.getBoundingClientRect();
+            const parentRect = overlayWrapper.parentElement.getBoundingClientRect();
+            startLeft = rect.left - parentRect.left;
+            startTop = rect.top - parentRect.top;
+            
+            overlayWrapper.style.transform = 'none';
+            overlayWrapper.style.left = `${startLeft}px`;
+            overlayWrapper.style.top = `${startTop}px`;
+            
+            e.preventDefault();
+        }
+
+        resizeHandle.addEventListener('mousedown', startResize);
+        resizeHandle.addEventListener('touchstart', startResize, { passive: false });
+
+        function startResize(e) {
+            if (!isEditMode) return;
+            isResizing = true;
+            
+            const pos = getClientXY(e);
+            startX = pos.x;
+            startWidth = parseInt(document.defaultView.getComputedStyle(overlayWrapper).width, 10);
+            
+            e.stopPropagation();
+            e.preventDefault();
+        }
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('mouseup', stopInteraction);
+        window.addEventListener('touchend', stopInteraction);
+
+        function onMove(e) {
+            if (!isDragging && !isResizing) return;
+            e.preventDefault();
+            
+            const pos = getClientXY(e);
+            
+            if (isDragging) {
+                const dx = pos.x - startX;
+                const dy = pos.y - startY;
+                overlayWrapper.style.left = `${startLeft + dx}px`;
+                overlayWrapper.style.top = `${startTop + dy}px`;
+            } else if (isResizing) {
+                const dx = pos.x - startX;
+                const newWidth = Math.max(50, startWidth + dx); 
+                overlayWrapper.style.width = `${newWidth}px`;
+            }
+        }
+
+        function stopInteraction() {
+            isDragging = false;
+            isResizing = false;
+        }
+
         async function init() {
             try {
-                // 1. Request temporary permission to read the names of all cameras
                 const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
                 tempStream.getTracks().forEach(track => track.stop());
 
-                // 2. Get the full list of cameras
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const cameras = devices.filter(device => device.kind === 'videoinput');
 
-                // 3. Populate the dropdown menu with all available cameras
                 cameraSelect.innerHTML = '';
                 cameras.forEach(cam => {
                     const option = document.createElement('option');
                     option.value = cam.deviceId;
-                    // Give it a readable name, fallback to ID if name is hidden
                     option.text = cam.label || `Camera (${cam.deviceId.slice(0, 8)}...)`; 
                     cameraSelect.add(option);
                 });
 
-                // 4. THE MEMORY FEATURE: Check if we saved a camera previously
                 const savedCameraId = localStorage.getItem('selectedCameraId');
-                
                 if (savedCameraId && cameras.some(cam => cam.deviceId === savedCameraId)) {
-                    // If the saved camera is still plugged in, select it in the dropdown
                     cameraSelect.value = savedCameraId;
-                    console.log("Restored last selected camera:", savedCameraId);
                 } else {
-                    // If no saved camera (or it's unplugged), just use the first one in the list
                     cameraSelect.selectedIndex = 0;
                 }
 
-                // 5. Start the video feed with the selected camera
                 startCamera(cameraSelect.value);
 
-                // 6. Listen for when the user manually changes the dropdown
                 cameraSelect.addEventListener('change', (e) => {
-                    const newCameraId = e.target.value;
-                    // SAVE the choice to the browser's memory
-                    localStorage.setItem('selectedCameraId', newCameraId); 
-                    startCamera(newCameraId);
+                    localStorage.setItem('selectedCameraId', e.target.value); 
+                    startCamera(e.target.value);
                 });
 
             } catch (error) {
                 console.error("Initialization failed:", error);
-                cameraSelect.innerHTML = '<option value="">Error: Allow camera access to continue</option>';
+                cameraSelect.innerHTML = '<option value="">Error: Allow camera access</option>';
             }
         }
 
         async function startCamera(deviceId) {
-            // Stop the previous camera feed to prevent memory leaks/multiple active cameras
             if (currentStream) {
                 currentStream.getTracks().forEach(track => track.stop());
             }
@@ -135,12 +404,10 @@
                     },
                     audio: false
                 };
-
                 currentStream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoElement.srcObject = currentStream;
             } catch (error) {
                 console.error("Failed to start specific camera, trying default:", error);
-                // Fallback if the exact device fails (e.g., unplugged)
                 try {
                     currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
                     videoElement.srcObject = currentStream;
@@ -150,7 +417,6 @@
             }
         }
 
-        // Run everything the moment the page loads
         init();
     </script>
 </body>
